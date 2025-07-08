@@ -1,5 +1,5 @@
 name = "majibattle"
-main = "src/index.ts"
+main = "dist/index.js"
 compatibility_date = "2024-01-01"
 
 # Development settings
@@ -11,9 +11,25 @@ local_protocol = "http"
 [env.staging]
 name = "majibattle-staging"
 
+[[env.staging.durable_objects.bindings]]
+name = "GAME_SESSION"
+class_name = "GameSession"
+
+[[env.staging.migrations]]
+tag = "v1"
+new_sqlite_classes = [ "GameSession" ]
+
 # Production environment
 [env.production]
 name = "majibattle"
+
+[[env.production.durable_objects.bindings]]
+name = "GAME_SESSION"
+class_name = "GameSession"
+
+[[env.production.migrations]]
+tag = "v1"
+new_sqlite_classes = [ "GameSession" ]
 
 # Build settings
 [build]

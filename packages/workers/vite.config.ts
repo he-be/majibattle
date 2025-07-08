@@ -6,10 +6,15 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     minify: true,
+    lib: {
+      entry: './src/index.ts',
+      formats: ['es'],
+      fileName: 'index',
+    },
     rollupOptions: {
-      input: './src/index.ts',
+      external: [],
       output: {
-        format: 'es',
+        entryFileNames: '[name].js',
       },
     },
   },

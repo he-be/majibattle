@@ -38,6 +38,6 @@ module.exports = [
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.config.js', '*.config.ts', '.wrangler/', '**/.wrangler/**'],
+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.config.js', '*.config.ts', '.wrangler/', '**/.wrangler/**', '**/dist/**'],
   }
 ];
