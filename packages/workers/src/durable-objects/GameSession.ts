@@ -4,6 +4,8 @@ import { KanjiDataManager } from '../data/KanjiDataManager';
 
 export class GameSession {
   private kanjiManager: KanjiDataManager;
+  private initialized: boolean = false;
+  private initError: Error | null = null;
 
   constructor(
     // eslint-disable-next-line no-undef
@@ -18,9 +20,39 @@ export class GameSession {
     const url = new URL(request.url);
     const method = request.method;
 
+    // Ensure database is initialized
+    if (!this.initialized && !this.initError) {
+      try {
+        console.log('GameSession: Starting database initialization...');
+        await this.initializeDatabase();
+        this.initialized = true;
+        console.log('GameSession: Database initialization successful');
+      } catch (e: any) {
+        console.error('FATAL: GameSession Database Initialization Failed:', e);
+        console.error('Error stack:', e.stack);
+        console.error('SQL availability check:', typeof this.state.storage.sql);
+        this.initError = e;
+      }
+    }
+
+    // Check initialization status
+    if (this.initError) {
+      console.error('GameSession fetch called but initialization failed:', this.initError.message);
+      return new Response(
+        JSON.stringify({
+          error: 'Durable Object initialization failed',
+          details: this.initError.message,
+          stack: this.initError.stack,
+          sqlAvailable: typeof this.state.storage.sql
+        }),
+        { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     try {
-      // Initialize database on first access
-      await this.initializeDatabase();
 
       switch (method) {
         case 'POST':
@@ -54,17 +86,28 @@ export class GameSession {
   }
 
   private async initializeDatabase(): Promise<void> {
-    await this.state.storage.sql.exec(`
-      CREATE TABLE IF NOT EXISTS game_sessions (
-        id INTEGER PRIMARY KEY,
-        session_id TEXT UNIQUE NOT NULL,
-        current_kanji TEXT NOT NULL,
-        selected_kanji TEXT NOT NULL,
-        spell_history TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        last_updated_at INTEGER NOT NULL
-      )
-    `);
+    console.log('initializeDatabase: Starting SQL database setup...');
+    console.log('initializeDatabase: state.storage available:', !!this.state.storage);
+    console.log('initializeDatabase: state.storage.sql available:', !!this.state.storage.sql);
+    console.log('initializeDatabase: SQL exec type:', typeof this.state.storage.sql?.exec);
+    
+    try {
+      await this.state.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS game_sessions (
+          id INTEGER PRIMARY KEY,
+          session_id TEXT UNIQUE NOT NULL,
+          current_kanji TEXT NOT NULL,
+          selected_kanji TEXT NOT NULL,
+          spell_history TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          last_updated_at INTEGER NOT NULL
+        )
+      `);
+      console.log('initializeDatabase: Table creation successful');
+    } catch (error) {
+      console.error('initializeDatabase: SQL exec failed:', error);
+      throw error;
+    }
   }
 
   private async createSession(): Promise<Response> {
