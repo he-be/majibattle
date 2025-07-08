@@ -46,3 +46,10 @@ tag = "v1"
 new_sqlite_classes = [ "GameSession" ]
 
 # Note: Staging and Production use GameSessionV2 to force new SQL-enabled instances
+
+# Environment variables
+[vars]
+GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
+
+# Secret bindings (use wrangler secret put GEMINI_API_KEY)
+# For local development: create .dev.vars file with GEMINI_API_KEY=your-key
