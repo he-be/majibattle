@@ -237,6 +237,8 @@ describe('GameSession Durable Object', () => {
       const result = (await response.json()) as any;
       expect(result.error).toBe('Durable Object initialization failed');
       expect(result.details).toBe('Database error');
+      expect(result.stack).toBeDefined();
+      expect(result.sqlAvailable).toBeDefined();
     });
 
     test('should return 404 for unknown endpoints', async () => {
