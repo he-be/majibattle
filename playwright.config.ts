@@ -30,15 +30,11 @@ export default defineConfig({
     },
     
     // CI環境では軽量化のためchromiumのみを使用
+    // ローカル環境でもWebKitの依存関係が不足しているため、ChromiumとFirefoxのみ使用
     ...(process.env.CI ? [] : [
       {
         name: 'firefox',
         use: { ...devices['Desktop Firefox'] },
-      },
-
-      {
-        name: 'webkit',
-        use: { ...devices['Desktop Safari'] },
       },
     ]),
   ],

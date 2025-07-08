@@ -30,6 +30,7 @@ jobs:
           path: node_modules
           key: deps-e2e-${{ hashFiles('package-lock.json') }}
           base: /tmp/cache
+        continue-on-error: true
 
       - name: Install dependencies
         run: npm ci
@@ -50,26 +51,17 @@ jobs:
       - name: Build project for E2E
         run: npm run build
 
-      - name: Start development server
+      - name: Kill any existing processes on port 8787
         run: |
-          npm run dev &
-          echo $! > .dev-server.pid
-          
-          # Wait for server to be ready
-          timeout 60 bash -c 'until curl -s http://localhost:8787 > /dev/null; do sleep 1; done'
+          # Kill any process using port 8787
+          sudo fuser -k 8787/tcp || true
+          # Wait a moment for cleanup
+          sleep 2
 
       - name: Run Playwright E2E tests
         run: npm run test:e2e
         env:
           CI: true
-
-      - name: Stop development server
-        if: always()
-        run: |
-          if [ -f .dev-server.pid ]; then
-            kill $(cat .dev-server.pid) || true
-            rm .dev-server.pid
-          fi
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
