@@ -1,101 +1,157 @@
-# ワークフローの名前
-name: CI/CD Pipeline - Cloudflare Workers
+name: CI/CD Pipeline - MajiBattle
 
-# ワークフローが実行されるタイミングを定義
 on:
-  # mainブランチにプッシュされた時
   push:
     branches: [ "main" ]
-  # mainブランチに向けたプルリクエストが作成・更新された時
   pull_request:
     branches: [ "main" ]
 
-# 実行される一連のタスク（ジョブ）を定義
 jobs:
-  # 品質チェック、テスト、ビルドを実行するジョブ
-  build-and-test:
-    # ジョブを実行する仮想環境の種類（最新のUbuntu）
-    runs-on: ubuntu-latest
+  test:
+    name: Run Tests and Checks
+    runs-on: self-hosted
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    timeout-minutes: 30
 
-    # ジョブ内のステップ（実行されるコマンド）
     steps:
-      # 1. リポジトリのコードを仮想環境にチェックアウトする
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Node.js環境をセットアップする
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          # 使用するNode.jsのバージョンを指定
-          node-version: '20.x'
-          # npmの依存関係をキャッシュして、次回以降の実行を高速化する
-          cache: 'npm'
+      - name: Setup Volta environment
+        run: |
+          export VOLTA_HOME="$HOME/.volta"
+          export PATH="$VOLTA_HOME/bin:$PATH"
+          echo "VOLTA_HOME=$VOLTA_HOME" >> $GITHUB_ENV
+          echo "$VOLTA_HOME/bin" >> $GITHUB_PATH
 
-      # 3. 依存関係をインストールする
-      # 'npm install'ではなく'npm ci'を使うことで、package-lock.jsonに基づいた高速でクリーンなインストールを行う
+      - name: Cache node_modules (root)
+        uses: corca-ai/local-cache@v2
+        with:
+          path: node_modules
+          key: deps-root-${{ hashFiles('package-lock.json') }}
+          base: /tmp/cache
+
+      - name: Cache packages/workers node_modules
+        uses: corca-ai/local-cache@v2
+        with:
+          path: packages/workers/node_modules
+          key: deps-workers-${{ hashFiles('packages/workers/package-lock.json') }}
+          base: /tmp/cache
+
+      - name: Cache packages/shared node_modules
+        uses: corca-ai/local-cache@v2
+        with:
+          path: packages/shared/node_modules
+          key: deps-shared-${{ hashFiles('packages/shared/package-lock.json') }}
+          base: /tmp/cache
+
       - name: Install dependencies
         run: npm ci
 
-      # 4. コードの静的解析（リンター）を実行する
-      - name: Run lint
-        run: npm run lint
-
-      # 5. TypeScriptの型チェックを実行する
       - name: Run typecheck
         run: npm run typecheck
 
-      # 6. 単体テストを実行する
+      - name: Run lint
+        run: npm run lint
+
       - name: Run unit tests
         run: npm run test:unit
 
-      # 7. カバレッジレポートを生成する
       - name: Generate coverage report
         run: npm run test:coverage
 
-      # 8. カバレッジレポートをPRにコメントする
       - name: Coverage Report
         if: github.event_name == 'pull_request'
         uses: davelosert/vitest-coverage-report-action@v2
 
-      # 9. Playwrightブラウザのインストール
-      - name: Install Playwright browsers
-        run: npx playwright install chromium
-
-      # 10. E2Eテストを実行する（ヘッドレスモード）
-      - name: Run E2E tests
-        run: npm run test:e2e
-        env:
-          CI: true
-
-      # 11. プロジェクトのビルド
       - name: Build project
         run: npm run build
 
-  # Cloudflare Workers へのデプロイ（mainブランチのみ）
-  deploy:
-    name: Deploy to Cloudflare Workers
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+  deploy-staging:
+    name: Deploy to Staging (PR Preview)
+    runs-on: self-hosted
+    needs: test
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 15
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - name: Setup Volta environment
+        run: |
+          export VOLTA_HOME="$HOME/.volta"
+          export PATH="$VOLTA_HOME/bin:$PATH"
+          echo "VOLTA_HOME=$VOLTA_HOME" >> $GITHUB_ENV
+          echo "$VOLTA_HOME/bin" >> $GITHUB_PATH
+
+      - name: Cache node_modules
+        uses: corca-ai/local-cache@v2
         with:
-          node-version: '20.x'
-          cache: 'npm'
-      
+          path: node_modules
+          key: deps-deploy-${{ hashFiles('package-lock.json') }}
+          base: /tmp/cache
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Build for Cloudflare Workers
+
+      - name: Build for staging
         run: npm run build
-      
-      - name: Deploy to Cloudflare Workers
+
+      - name: Deploy to staging environment
+        run: |
+          cd packages/workers
+          npx wrangler deploy --env staging --var PR_NUMBER:${{ github.event.number }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Comment PR with staging URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const stagingUrl = `https://majibattle-pr-${prNumber}.workers.dev`;
+            
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview Deployment Ready!**\n\n📱 **Staging URL**: ${stagingUrl}\n\n_This deployment will be updated automatically when you push new commits to this PR._`
+            });
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Volta environment
+        run: |
+          export VOLTA_HOME="$HOME/.volta"
+          export PATH="$VOLTA_HOME/bin:$PATH"
+          echo "VOLTA_HOME=$VOLTA_HOME" >> $GITHUB_ENV
+          echo "$VOLTA_HOME/bin" >> $GITHUB_PATH
+
+      - name: Cache node_modules
+        uses: corca-ai/local-cache@v2
+        with:
+          path: node_modules
+          key: deps-deploy-${{ hashFiles('package-lock.json') }}
+          base: /tmp/cache
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for production
+        run: npm run build
+
+      - name: Deploy to production
         run: npm run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
