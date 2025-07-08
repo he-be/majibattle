@@ -1,9 +1,10 @@
 // Cloudflare Workers サンプルアプリケーション
 
 // Import proper GameSession implementation
-// Export both versions - V2 for new deployments with SQL support
+// Export all versions - V3 is the latest with SQL support
 export { GameSession } from './durable-objects/GameSession';
 export { GameSessionV2 } from './durable-objects/GameSessionV2';
+export { GameSessionV3 } from './durable-objects/GameSessionV3';
 
 import { SpellGenerationService } from './services/SpellGenerationService';
 
@@ -1094,7 +1095,10 @@ async function generateSpell(
       });
     }
 
-    const sessionData = (await stateResponse.json()) as { success: boolean; data?: { selectedKanji?: string[] } };
+    const sessionData = (await stateResponse.json()) as {
+      success: boolean;
+      data?: { selectedKanji?: string[] };
+    };
 
     if (!sessionData.success || !sessionData.data) {
       return new Response(JSON.stringify({ error: 'Invalid session state' }), {

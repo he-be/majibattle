@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev src/index.ts",
     "build": "vite build",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --env production",
+    "deploy:staging": "wrangler deploy --env staging",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
