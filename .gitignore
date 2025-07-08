@@ -12,6 +12,7 @@ dist/
 
 # Cloudflare
 .wrangler/
+.dev.vars
 
 # Test coverage
 coverage/
