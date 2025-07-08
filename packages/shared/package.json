@@ -4,6 +4,7 @@
   "description": "Shared types and utilities for MajiBattle",
   "main": "index.ts",
   "scripts": {
+    "build": "echo 'No build needed for shared types'",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
