@@ -2,7 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { SpellGenerationService } from '../services/SpellGenerationService';
 
 // Mock fetch globally
-global.fetch = vi.fn();
+global.fetch = vi.fn() as any;
 
 describe('SpellGenerationService', () => {
   let service: SpellGenerationService;
@@ -23,7 +23,7 @@ describe('SpellGenerationService', () => {
 
     test('should generate fallback spell when API fails', async () => {
       // Mock fetch to reject
-      (global.fetch as vi.MockedFunction<typeof fetch>).mockRejectedValue(new Error('API Error'));
+      (global.fetch as any).mockRejectedValue(new Error('API Error'));
 
       const result = await service.generateSpell(['火', '水', '木', '金']);
 
@@ -60,10 +60,10 @@ describe('SpellGenerationService', () => {
         ]
       };
 
-      (global.fetch as vi.MockedFunction<typeof fetch>).mockResolvedValue({
+      (global.fetch as any).mockResolvedValue({
         ok: true,
         json: async () => mockResponse
-      } as Response);
+      });
 
       const result = await service.generateSpell(['火', '水', '木', '金']);
 
@@ -91,10 +91,10 @@ describe('SpellGenerationService', () => {
         ]
       };
 
-      (global.fetch as vi.MockedFunction<typeof fetch>).mockResolvedValue({
+      (global.fetch as any).mockResolvedValue({
         ok: true,
         json: async () => mockResponse
-      } as Response);
+      });
 
       // Should fallback to deterministic generation
       const result = await service.generateSpell(['火', '水', '木', '金']);
@@ -127,7 +127,7 @@ describe('SpellGenerationService', () => {
   describe('fallback spell generation', () => {
     test('should generate useless rarity for high frequency kanji', async () => {
       // Mock fetch to fail so we get fallback generation
-      (global.fetch as vi.MockedFunction<typeof fetch>).mockRejectedValue(new Error('API Error'));
+      (global.fetch as any).mockRejectedValue(new Error('API Error'));
 
       // Use high frequency kanji that should result in useless rarity
       const result = await service.generateSpell(['一', '二', '三', '四']);
@@ -138,7 +138,7 @@ describe('SpellGenerationService', () => {
 
     test('should generate legendary rarity for low frequency kanji', async () => {
       // Mock fetch to fail so we get fallback generation
-      (global.fetch as vi.MockedFunction<typeof fetch>).mockRejectedValue(new Error('API Error'));
+      (global.fetch as any).mockRejectedValue(new Error('API Error'));
 
       // Use low frequency kanji that should result in legendary rarity
       const result = await service.generateSpell(['龍', '鎧', '槍', '蝿']);
@@ -149,7 +149,7 @@ describe('SpellGenerationService', () => {
 
     test('should include "弱" element in possible elements', async () => {
       // Mock fetch to fail so we get fallback generation
-      (global.fetch as vi.MockedFunction<typeof fetch>).mockRejectedValue(new Error('API Error'));
+      (global.fetch as any).mockRejectedValue(new Error('API Error'));
 
       // Use specific kanji that will deterministically generate "弱" element
       // The element is determined by kanjiDetails[0].character.charCodeAt(0) % elements.length
