@@ -1,41 +1,124 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('AI-Driven Development Sample App E2E Tests', () => {
-  test('should display sample page with valid message', async ({ page }) => {
-    // Navigate to the sample page
+test.describe('MajiBattle Game E2E Tests', () => {
+  test('should display MajiBattle game interface', async ({ page }) => {
+    // Navigate to the game page
     await page.goto('/');
 
-    // Check page title contains one of our sample messages
-    await expect(page).toHaveTitle(/Hello|World|AI|Driven|Development/);
+    // Check page title
+    await expect(page).toHaveTitle('魔字武闘 - MajiBattle');
 
-    // Check that the page contains a message
-    const messageElement = page.locator('.message');
-    await expect(messageElement).toBeVisible();
-
-    // Check that the message is one of the valid sample data
-    const messageText = await messageElement.textContent();
-    expect(['Hello', 'World', 'AI', 'Driven', 'Development']).toContain(messageText);
-
-    // Check that the "Generate New" button is present and clickable
-    const generateButton = page.locator('a:has-text("Generate New")');
-    await expect(generateButton).toBeVisible();
-    await expect(generateButton).toHaveAttribute('href', '/');
+    // Check main game elements
+    await expect(page.locator('.game-title')).toHaveText('魔字武闘');
+    await expect(page.locator('.game-subtitle')).toContainText('4つの漢字を選んで呪文を作ろう');
+    
+    // Check kanji grid is present and loaded
+    await expect(page.locator('.kanji-grid')).toBeVisible();
+    await expect(page.locator('.kanji-item')).toHaveCount(20);
+    
+    // Check control buttons
+    await expect(page.locator('#reset-button')).toBeVisible();
+    await expect(page.locator('#create-spell-button')).toBeVisible();
+    await expect(page.locator('#create-spell-button')).toBeDisabled();
+    
+    // Check status message
+    await expect(page.locator('#status-message')).toContainText('20個の漢字から4つを選んで');
+    
+    // Check selected count is initially 0
+    await expect(page.locator('#selected-count')).toHaveText('0');
   });
 
-  test('should be able to generate new messages', async ({ page }) => {
+  test('should allow kanji selection and spell creation', async ({ page }) => {
     await page.goto('/');
+    
+    // Wait for kanji grid to load
+    await expect(page.locator('.kanji-item')).toHaveCount(20);
+    
+    // Select 4 kanji
+    const kanjiItems = page.locator('.kanji-item');
+    await kanjiItems.nth(0).click();
+    await expect(page.locator('#selected-count')).toHaveText('1');
+    
+    await kanjiItems.nth(1).click();
+    await expect(page.locator('#selected-count')).toHaveText('2');
+    
+    await kanjiItems.nth(2).click();
+    await expect(page.locator('#selected-count')).toHaveText('3');
+    
+    await kanjiItems.nth(3).click();
+    await expect(page.locator('#selected-count')).toHaveText('4');
+    
+    // Check spell creation button is enabled
+    await expect(page.locator('#create-spell-button')).toBeEnabled();
+    
+    // Create spell
+    await page.locator('#create-spell-button').click();
+    
+    // Check success message appears
+    await expect(page.locator('#status-message')).toContainText('呪文');
+    
+    // Check that selection is reset after 3 seconds (or manually reset)
+    await page.waitForTimeout(3500); // Wait for auto-reset
+    await expect(page.locator('#selected-count')).toHaveText('0');
+  });
 
-    // Click "Generate New" button
-    await page.click('a:has-text("Generate New")');
+  test('should handle kanji deselection', async ({ page }) => {
+    await page.goto('/');
+    
+    // Wait for kanji grid to load
+    await expect(page.locator('.kanji-item')).toHaveCount(20);
+    
+    // Select a kanji
+    const firstKanji = page.locator('.kanji-item').nth(0);
+    await firstKanji.click();
+    await expect(page.locator('#selected-count')).toHaveText('1');
+    
+    // Deselect by clicking selected kanji in the selected area
+    await expect(page.locator('.selected-kanji')).toHaveCount(1);
+    await page.locator('.selected-kanji').click();
+    await expect(page.locator('#selected-count')).toHaveText('0');
+  });
 
-    // Wait for page to reload and check that we have a message
-    await page.waitForLoadState('networkidle');
-    const messageElement = page.locator('.message');
-    await expect(messageElement).toBeVisible();
+  test('should prevent selecting more than 4 kanji', async ({ page }) => {
+    await page.goto('/');
+    
+    // Wait for kanji grid to load
+    await expect(page.locator('.kanji-item')).toHaveCount(20);
+    
+    // Select 4 kanji
+    const kanjiItems = page.locator('.kanji-item');
+    for (let i = 0; i < 4; i++) {
+      await kanjiItems.nth(i).click();
+    }
+    
+    await expect(page.locator('#selected-count')).toHaveText('4');
+    
+    // Try to select a 5th kanji
+    await kanjiItems.nth(4).click();
+    
+    // Should still be 4 and show warning message
+    await expect(page.locator('#selected-count')).toHaveText('4');
+    await expect(page.locator('#status-message')).toContainText('最大4つまでしか選択できません');
+  });
 
-    // Verify the new message is valid
-    const newMessage = await messageElement.textContent();
-    expect(['Hello', 'World', 'AI', 'Driven', 'Development']).toContain(newMessage || '');
+  test('should reset selection', async ({ page }) => {
+    await page.goto('/');
+    
+    // Wait for kanji grid to load
+    await expect(page.locator('.kanji-item')).toHaveCount(20);
+    
+    // Select some kanji
+    const kanjiItems = page.locator('.kanji-item');
+    await kanjiItems.nth(0).click();
+    await kanjiItems.nth(1).click();
+    await expect(page.locator('#selected-count')).toHaveText('2');
+    
+    // Reset selection
+    await page.locator('#reset-button').click();
+    
+    // Check that selection is cleared
+    await expect(page.locator('#selected-count')).toHaveText('0');
+    await expect(page.locator('#status-message')).toContainText('選択をリセットしました');
   });
 
   test('should return valid JSON from API endpoint', async ({ page }) => {
