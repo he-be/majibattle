@@ -48,6 +48,7 @@ jobs:
           path: packages/shared/node_modules
           key: deps-shared-${{ hashFiles('packages/shared/package-lock.json') }}
           base: /tmp/cache
+        continue-on-error: true
 
       - name: Install dependencies
         run: npm ci
