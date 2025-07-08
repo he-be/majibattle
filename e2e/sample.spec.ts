@@ -31,21 +31,27 @@ test.describe('MajiBattle Game E2E Tests', () => {
   test('should allow kanji selection and spell creation', async ({ page }) => {
     await page.goto('/');
     
-    // Wait for kanji grid to load
+    // Wait for kanji grid to load via API
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('.kanji-item')).toHaveCount(20);
     
-    // Select 4 kanji
+    // Select 4 kanji (wait for API responses)
     const kanjiItems = page.locator('.kanji-item');
+    
     await kanjiItems.nth(0).click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await expect(page.locator('#selected-count')).toHaveText('1');
     
     await kanjiItems.nth(1).click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await expect(page.locator('#selected-count')).toHaveText('2');
     
     await kanjiItems.nth(2).click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await expect(page.locator('#selected-count')).toHaveText('3');
     
     await kanjiItems.nth(3).click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await expect(page.locator('#selected-count')).toHaveText('4');
     
     // Check spell creation button is enabled
@@ -65,30 +71,35 @@ test.describe('MajiBattle Game E2E Tests', () => {
   test('should handle kanji deselection', async ({ page }) => {
     await page.goto('/');
     
-    // Wait for kanji grid to load
+    // Wait for kanji grid to load via API
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('.kanji-item')).toHaveCount(20);
     
     // Select a kanji
     const firstKanji = page.locator('.kanji-item').nth(0);
     await firstKanji.click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await expect(page.locator('#selected-count')).toHaveText('1');
     
     // Deselect by clicking selected kanji in the selected area
     await expect(page.locator('.selected-kanji')).toHaveCount(1);
     await page.locator('.selected-kanji').click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await expect(page.locator('#selected-count')).toHaveText('0');
   });
 
   test('should prevent selecting more than 4 kanji', async ({ page }) => {
     await page.goto('/');
     
-    // Wait for kanji grid to load
+    // Wait for kanji grid to load via API
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('.kanji-item')).toHaveCount(20);
     
     // Select 4 kanji
     const kanjiItems = page.locator('.kanji-item');
     for (let i = 0; i < 4; i++) {
       await kanjiItems.nth(i).click();
+      await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     }
     
     await expect(page.locator('#selected-count')).toHaveText('4');
@@ -104,17 +115,21 @@ test.describe('MajiBattle Game E2E Tests', () => {
   test('should reset selection', async ({ page }) => {
     await page.goto('/');
     
-    // Wait for kanji grid to load
+    // Wait for kanji grid to load via API
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('.kanji-item')).toHaveCount(20);
     
     // Select some kanji
     const kanjiItems = page.locator('.kanji-item');
     await kanjiItems.nth(0).click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await kanjiItems.nth(1).click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
     await expect(page.locator('#selected-count')).toHaveText('2');
     
     // Reset selection
     await page.locator('#reset-button').click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/reset'));
     
     // Check that selection is cleared
     await expect(page.locator('#selected-count')).toHaveText('0');
@@ -145,5 +160,56 @@ test.describe('MajiBattle Game E2E Tests', () => {
     expect(response.status()).toBe(200);
     expect(response.headers()['cache-control']).toBe('no-cache');
     expect(response.headers()['content-type']).toContain('text/html');
+  });
+
+  test('should handle GameSession API endpoints', async ({ page }) => {
+    // Test new session creation
+    const newSessionResponse = await page.request.get('/api/game/new');
+    expect(newSessionResponse.status()).toBe(201);
+    expect(newSessionResponse.headers()['content-type']).toBe('application/json');
+    expect(newSessionResponse.headers()['access-control-allow-origin']).toBe('*');
+    
+    const sessionData = await newSessionResponse.json();
+    expect(sessionData).toHaveProperty('sessionId');
+    expect(sessionData).toHaveProperty('success', true);
+    
+    // Test session state retrieval
+    const sessionId = sessionData.sessionId;
+    const stateResponse = await page.request.get(`/api/game/${sessionId}`);
+    expect(stateResponse.status()).toBe(200);
+    
+    const stateData = await stateResponse.json();
+    expect(stateData.success).toBe(true);
+    expect(stateData.data).toHaveProperty('currentKanji');
+    expect(stateData.data.currentKanji).toHaveLength(20);
+    expect(stateData.data).toHaveProperty('selectedKanji');
+    expect(stateData.data.selectedKanji).toHaveLength(0);
+  });
+
+  test('should handle session persistence across page reloads', async ({ page }) => {
+    await page.goto('/');
+    
+    // Wait for initial load and kanji generation
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.kanji-item')).toHaveCount(20);
+    
+    // Select a kanji
+    const firstKanji = page.locator('.kanji-item').nth(0);
+    const firstKanjiText = await firstKanji.textContent();
+    await firstKanji.click();
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
+    await expect(page.locator('#selected-count')).toHaveText('1');
+    
+    // Reload the page
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    
+    // Check if session is restored (selection should be maintained)
+    await expect(page.locator('#selected-count')).toHaveText('1');
+    await expect(page.locator('.selected-kanji')).toHaveCount(1);
+    
+    // Verify the same kanji is still selected
+    const selectedKanjiText = await page.locator('.selected-kanji').textContent();
+    expect(selectedKanjiText).toContain(firstKanjiText);
   });
 });

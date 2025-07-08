@@ -4,6 +4,19 @@ import { getRandomItem, sampleData } from '../index';
 // Cloudflare Workers環境をモック
 const mockRequest = (url: string, method = 'GET') => new Request(url, { method });
 
+// Mock environment for Cloudflare Workers
+const mockEnv = {
+  GAME_SESSION: {
+    idFromName: () => ({ name: 'mock-id' }),
+    get: () => ({
+      fetch: () => Promise.resolve(new Response('{"success": true, "data": {}}', { status: 200 })),
+    }),
+    newUniqueId: () => ({ name: 'unique-id' }),
+    idFromString: () => ({ name: 'string-id' }),
+    jurisdiction: 'local',
+  },
+} as any;
+
 describe('AI-Driven Development Sample App', () => {
   describe('getRandomItem function', () => {
     test('should return a valid item from sampleData', () => {
@@ -27,7 +40,7 @@ describe('AI-Driven Development Sample App', () => {
       const worker = await import('../index');
       const request = mockRequest('https://example.com/');
 
-      const response = await worker.default.fetch(request);
+      const response = await worker.default.fetch(request, mockEnv);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toContain('text/html');
@@ -44,7 +57,7 @@ describe('AI-Driven Development Sample App', () => {
       const worker = await import('../index');
       const request = mockRequest('https://example.com/api/random');
 
-      const response = await worker.default.fetch(request);
+      const response = await worker.default.fetch(request, mockEnv);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toBe('application/json');
@@ -58,7 +71,7 @@ describe('AI-Driven Development Sample App', () => {
       const worker = await import('../index');
       const request = mockRequest('https://example.com/unknown');
 
-      const response = await worker.default.fetch(request);
+      const response = await worker.default.fetch(request, mockEnv);
 
       expect(response.status).toBe(404);
       expect(await response.text()).toBe('Not Found');
@@ -68,7 +81,7 @@ describe('AI-Driven Development Sample App', () => {
       const worker = await import('../index');
       const request = mockRequest('https://example.com/');
 
-      const response = await worker.default.fetch(request);
+      const response = await worker.default.fetch(request, mockEnv);
 
       expect(response.headers.get('Cache-Control')).toBe('no-cache');
     });
