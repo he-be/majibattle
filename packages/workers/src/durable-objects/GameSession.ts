@@ -1,13 +1,18 @@
 import { GameSessionState, APIResponse } from '@majibattle/shared';
 import { generateSessionId, validateKanjiSelection } from '@majibattle/shared';
+import { KanjiDataManager } from '../data/KanjiDataManager';
 
 export class GameSession {
+  private kanjiManager: KanjiDataManager;
+
   constructor(
     // eslint-disable-next-line no-undef
     private state: DurableObjectState,
 
     private env: Env
-  ) {}
+  ) {
+    this.kanjiManager = new KanjiDataManager();
+  }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -66,8 +71,8 @@ export class GameSession {
     const sessionId = generateSessionId();
     const now = Date.now();
 
-    // Generate initial 20 random kanji (placeholder for Phase 3)
-    const currentKanji = this.generatePlaceholderKanji();
+    // Generate initial 20 random kanji using KanjiDataManager
+    const currentKanji = this.kanjiManager.generateRandomKanji(20);
 
     const sessionState: GameSessionState = {
       sessionId,
@@ -165,7 +170,7 @@ export class GameSession {
     }
 
     const now = Date.now();
-    const newKanji = this.generatePlaceholderKanji();
+    const newKanji = this.kanjiManager.generateRandomKanji(20);
 
     await this.state.storage.sql.exec(
       'UPDATE game_sessions SET current_kanji = ?, selected_kanji = ?, last_updated_at = ? WHERE session_id = ?',
@@ -183,35 +188,6 @@ export class GameSession {
     };
 
     return this.successResponse(resetState);
-  }
-
-  private generatePlaceholderKanji(): string[] {
-    // Placeholder implementation - will be replaced in Phase 3
-    const commonKanji = [
-      '火',
-      '水',
-      '木',
-      '金',
-      '土',
-      '光',
-      '闇',
-      '風',
-      '雷',
-      '氷',
-      '剣',
-      '盾',
-      '魔',
-      '法',
-      '術',
-      '攻',
-      '守',
-      '癒',
-      '破',
-      '創',
-    ];
-
-    const shuffled = [...commonKanji].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 20);
   }
 
   private successResponse<T>(data: T): Response {
