@@ -135,10 +135,11 @@ describe('GameSession Durable Object', () => {
       expect(result.data?.selectedKanji).toEqual(['火', '水']);
     });
 
-    test('should reject duplicate kanji selection', async () => {
+    test('should toggle kanji selection (deselect if already selected)', async () => {
       mockSqlStorage.exec
         .mockResolvedValueOnce({ toArray: () => [] }) // CREATE TABLE
-        .mockResolvedValueOnce({ toArray: () => [mockSessionData] }); // SELECT
+        .mockResolvedValueOnce({ toArray: () => [mockSessionData] }) // SELECT
+        .mockResolvedValueOnce({ toArray: () => [] }); // UPDATE
 
       const request = new Request('http://localhost/select', {
         method: 'POST',
@@ -146,11 +147,11 @@ describe('GameSession Durable Object', () => {
       });
       const response = await gameSession.fetch(request);
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
 
-      const result = (await response.json()) as APIResponse<null>;
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Invalid kanji selection');
+      const result = (await response.json()) as APIResponse<GameSessionState>;
+      expect(result.success).toBe(true);
+      expect(result.data?.selectedKanji).toEqual([]); // Should be deselected
     });
 
     test('should reject kanji not in current selection', async () => {
@@ -191,7 +192,7 @@ describe('GameSession Durable Object', () => {
 
       const result = (await response.json()) as APIResponse<null>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Invalid kanji selection');
+      expect(result.error).toContain('Maximum 4 kanji can be selected');
     });
   });
 

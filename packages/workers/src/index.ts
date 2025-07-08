@@ -330,6 +330,7 @@ function generateGameHTML(): string {
                 this.selectedKanji = [];
                 this.availableKanji = [];
                 this.maxSelection = 4;
+                this.sessionId = null;
                 
                 this.elements = {
                     kanjiGrid: document.getElementById('kanji-grid'),
@@ -351,14 +352,50 @@ function generateGameHTML(): string {
             
             async loadKanji() {
                 try {
-                    // プレースホルダー漢字（実際の実装ではAPIから取得）
+                    // セッションIDを取得または新規作成
+                    await this.ensureSession();
+                    
+                    // セッション状態を取得して漢字をロード
+                    const response = await fetch(\`/api/game/\${this.sessionId}\`);
+                    if (!response.ok) {
+                        throw new Error('Failed to load session');
+                    }
+                    
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        this.availableKanji = result.data.currentKanji;
+                        this.selectedKanji = result.data.selectedKanji;
+                    } else {
+                        throw new Error(result.error || 'Failed to load kanji');
+                    }
+                    
+                    this.renderKanjiGrid();
+                } catch (error) {
+                    console.error('Load kanji error:', error);
+                    this.showStatus('漢字の読み込みに失敗しました', 'warning');
+                    // フォールバック：プレースホルダー漢字
                     this.availableKanji = [
                         '火', '水', '木', '金', '土', '光', '闇', '風', '雷', '氷',
                         '剣', '盾', '魔', '法', '術', '攻', '守', '癒', '破', '創'
                     ];
                     this.renderKanjiGrid();
-                } catch (error) {
-                    this.showStatus('漢字の読み込みに失敗しました', 'warning');
+                }
+            }
+            
+            async ensureSession() {
+                // localStorage からセッションIDを取得
+                this.sessionId = localStorage.getItem('majibattle-session-id');
+                
+                if (!this.sessionId) {
+                    // 新しいセッションを作成
+                    const response = await fetch('/api/game/new');
+                    if (!response.ok) {
+                        throw new Error('Failed to create session');
+                    }
+                    
+                    const result = await response.json();
+                    this.sessionId = result.sessionId;
+                    localStorage.setItem('majibattle-session-id', this.sessionId);
                 }
             }
             
@@ -372,16 +409,16 @@ function generateGameHTML(): string {
                     kanjiElement.dataset.kanji = kanji;
                     kanjiElement.dataset.index = index;
                     
-                    kanjiElement.addEventListener('click', () => this.selectKanji(kanji));
+                    kanjiElement.addEventListener('click', async () => await this.selectKanji(kanji));
                     
                     this.elements.kanjiGrid.appendChild(kanjiElement);
                 });
             }
             
-            selectKanji(kanji) {
+            async selectKanji(kanji) {
                 // 既に選択済みかチェック
                 if (this.selectedKanji.includes(kanji)) {
-                    this.deselectKanji(kanji);
+                    await this.deselectKanji(kanji);
                     return;
                 }
                 
@@ -391,23 +428,62 @@ function generateGameHTML(): string {
                     return;
                 }
                 
-                // 漢字を選択
-                this.selectedKanji.push(kanji);
-                this.updateUI();
-                
-                if (this.selectedKanji.length === this.maxSelection) {
-                    this.showStatus('4つの漢字が選択されました！呪文を作成できます', 'success');
-                } else {
-                    this.showStatus(\`あと\${this.maxSelection - this.selectedKanji.length}つ選択してください\`, 'info');
+                try {
+                    // API経由で漢字を選択
+                    const response = await fetch(\`/api/game/\${this.sessionId}/select\`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ kanji }),
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        this.selectedKanji = result.data.selectedKanji;
+                        this.updateUI();
+                        
+                        if (this.selectedKanji.length === this.maxSelection) {
+                            this.showStatus('4つの漢字が選択されました！呪文を作成できます', 'success');
+                        } else {
+                            this.showStatus(\`あと\${this.maxSelection - this.selectedKanji.length}つ選択してください\`, 'info');
+                        }
+                    } else {
+                        this.showStatus(result.error || '選択に失敗しました', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Select kanji error:', error);
+                    this.showStatus('ネットワークエラーが発生しました', 'warning');
                 }
             }
             
-            deselectKanji(kanji) {
+            async deselectKanji(kanji) {
                 const index = this.selectedKanji.indexOf(kanji);
                 if (index > -1) {
-                    this.selectedKanji.splice(index, 1);
-                    this.updateUI();
-                    this.showStatus(\`「\${kanji}」の選択を解除しました\`, 'info');
+                    try {
+                        // API経由で漢字を再選択（トグル効果）
+                        const response = await fetch(\`/api/game/\${this.sessionId}/select\`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ kanji }),
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success && result.data) {
+                            this.selectedKanji = result.data.selectedKanji;
+                            this.updateUI();
+                            this.showStatus(\`「\${kanji}」の選択を解除しました\`, 'info');
+                        } else {
+                            this.showStatus(result.error || '選択解除に失敗しました', 'warning');
+                        }
+                    } catch (error) {
+                        console.error('Deselect kanji error:', error);
+                        this.showStatus('ネットワークエラーが発生しました', 'warning');
+                    }
                 }
             }
             
@@ -429,7 +505,7 @@ function generateGameHTML(): string {
                         \${kanji}
                         <span class="order">\${index + 1}</span>
                     \`;
-                    selectedElement.addEventListener('click', () => this.deselectKanji(kanji));
+                    selectedElement.addEventListener('click', async () => await this.deselectKanji(kanji));
                     this.elements.selectedContainer.appendChild(selectedElement);
                 });
             }
@@ -454,10 +530,27 @@ function generateGameHTML(): string {
                 this.elements.createSpellButton.disabled = !canCreateSpell;
             }
             
-            reset() {
-                this.selectedKanji = [];
-                this.updateUI();
-                this.showStatus('選択をリセットしました', 'info');
+            async reset() {
+                try {
+                    const response = await fetch(\`/api/game/\${this.sessionId}/reset\`, {
+                        method: 'POST',
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        this.availableKanji = result.data.currentKanji;
+                        this.selectedKanji = result.data.selectedKanji;
+                        this.renderKanjiGrid();
+                        this.updateUI();
+                        this.showStatus('選択をリセットしました', 'info');
+                    } else {
+                        this.showStatus(result.error || 'リセットに失敗しました', 'warning');
+                    }
+                } catch (error) {
+                    console.error('Reset error:', error);
+                    this.showStatus('ネットワークエラーが発生しました', 'warning');
+                }
             }
             
             createSpell() {
@@ -476,7 +569,7 @@ function generateGameHTML(): string {
             }
             
             bindEvents() {
-                this.elements.resetButton.addEventListener('click', () => this.reset());
+                this.elements.resetButton.addEventListener('click', async () => await this.reset());
                 this.elements.createSpellButton.addEventListener('click', () => this.createSpell());
             }
             
@@ -496,8 +589,14 @@ function generateGameHTML(): string {
   `;
 }
 
+// Cloudflare Workers Environment interface
+interface Env {
+  // eslint-disable-next-line no-undef
+  GAME_SESSION: DurableObjectNamespace;
+}
+
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     // ルートパスの処理 - MajiBattleゲーム画面
@@ -510,6 +609,11 @@ export default {
           'Cache-Control': 'no-cache',
         },
       });
+    }
+
+    // GameSession API endpoints
+    if (url.pathname.startsWith('/api/game/')) {
+      return await handleGameAPI(request, env, url);
     }
 
     // APIエンドポイント（JSON）
@@ -528,3 +632,189 @@ export default {
     return new Response('Not Found', { status: 404 });
   },
 };
+
+/**
+ * Handle GameSession API requests
+ */
+async function handleGameAPI(request: Request, env: Env, url: URL): Promise<Response> {
+  const method = request.method;
+  const pathSegments = url.pathname.split('/').filter(Boolean); // ['api', 'game', ...]
+
+  try {
+    // CORS headers for all API responses
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    };
+
+    // Handle preflight OPTIONS requests
+    if (method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    // GET /api/game/new - Create new session
+    if (method === 'GET' && pathSegments[2] === 'new') {
+      return await createNewGameSession(env, corsHeaders);
+    }
+
+    // Session-specific endpoints: /api/game/{sessionId}/...
+    if (pathSegments.length >= 3) {
+      const sessionId = pathSegments[2];
+
+      // GET /api/game/{sessionId} - Get session state
+      if (method === 'GET' && pathSegments.length === 3) {
+        return await getGameSessionState(env, sessionId, corsHeaders);
+      }
+
+      // POST /api/game/{sessionId}/select - Select kanji
+      if (method === 'POST' && pathSegments[3] === 'select') {
+        return await selectKanji(request, env, sessionId, corsHeaders);
+      }
+
+      // POST /api/game/{sessionId}/reset - Reset session
+      if (method === 'POST' && pathSegments[3] === 'reset') {
+        return await resetGameSession(env, sessionId, corsHeaders);
+      }
+    }
+
+    // API endpoint not found
+    return new Response(JSON.stringify({ error: 'API endpoint not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    });
+  } catch (error) {
+    console.error('GameAPI error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+/**
+ * Create a new game session
+ */
+async function createNewGameSession(
+  env: Env,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  // Generate a unique session ID
+  const sessionId = crypto.randomUUID();
+
+  // Get Durable Object instance
+  const durableObjectId = env.GAME_SESSION.idFromName(sessionId);
+  const durableObject = env.GAME_SESSION.get(durableObjectId);
+
+  // Create new session
+  const response = await durableObject.fetch(
+    new Request('https://fake-host/create', {
+      method: 'POST',
+    })
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to create session');
+  }
+
+  const sessionData = (await response.json()) as { success: boolean; data: any };
+
+  return new Response(
+    JSON.stringify({
+      sessionId,
+      success: sessionData.success,
+      data: sessionData.data,
+    }),
+    {
+      status: 201,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    }
+  );
+}
+
+/**
+ * Get game session state
+ */
+async function getGameSessionState(
+  env: Env,
+  sessionId: string,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const durableObjectId = env.GAME_SESSION.idFromName(sessionId);
+  const durableObject = env.GAME_SESSION.get(durableObjectId);
+
+  const response = await durableObject.fetch(
+    new Request('https://fake-host/state', {
+      method: 'GET',
+    })
+  );
+
+  const responseData = await response.text();
+
+  return new Response(responseData, {
+    status: response.status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  });
+}
+
+/**
+ * Select a kanji in the session
+ */
+async function selectKanji(
+  request: Request,
+  env: Env,
+  sessionId: string,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const body = (await request.json()) as { kanji: string };
+
+  if (!body.kanji) {
+    return new Response(JSON.stringify({ error: 'Missing kanji parameter' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    });
+  }
+
+  const durableObjectId = env.GAME_SESSION.idFromName(sessionId);
+  const durableObject = env.GAME_SESSION.get(durableObjectId);
+
+  const response = await durableObject.fetch(
+    new Request('https://fake-host/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kanji: body.kanji }),
+    })
+  );
+
+  const responseData = await response.text();
+
+  return new Response(responseData, {
+    status: response.status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  });
+}
+
+/**
+ * Reset game session
+ */
+async function resetGameSession(
+  env: Env,
+  sessionId: string,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const durableObjectId = env.GAME_SESSION.idFromName(sessionId);
+  const durableObject = env.GAME_SESSION.get(durableObjectId);
+
+  const response = await durableObject.fetch(
+    new Request('https://fake-host/reset', {
+      method: 'POST',
+    })
+  );
+
+  const responseData = await response.text();
+
+  return new Response(responseData, {
+    status: response.status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  });
+}

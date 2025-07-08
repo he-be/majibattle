@@ -1,5 +1,5 @@
 import { GameSessionState, APIResponse } from '@majibattle/shared';
-import { generateSessionId, validateKanjiSelection } from '@majibattle/shared';
+import { generateSessionId } from '@majibattle/shared';
 import { KanjiDataManager } from '../data/KanjiDataManager';
 
 export class GameSession {
@@ -130,16 +130,25 @@ export class GameSession {
       return this.errorResponse('Session state not found', 404);
     }
 
-    // Validate kanji selection
-    if (!validateKanjiSelection(currentState.selectedKanji, kanji)) {
-      return this.errorResponse('Invalid kanji selection: maximum 4 or already selected', 400);
-    }
-
     if (!currentState.currentKanji.includes(kanji)) {
       return this.errorResponse('Kanji not available in current selection', 400);
     }
 
-    const updatedSelectedKanji = [...currentState.selectedKanji, kanji];
+    // Toggle selection: remove if already selected, add if not selected
+    let updatedSelectedKanji: string[];
+    const isAlreadySelected = currentState.selectedKanji.includes(kanji);
+
+    if (isAlreadySelected) {
+      // Remove from selection
+      updatedSelectedKanji = currentState.selectedKanji.filter((k) => k !== kanji);
+    } else {
+      // Add to selection if under limit
+      if (currentState.selectedKanji.length >= 4) {
+        return this.errorResponse('Maximum 4 kanji can be selected', 400);
+      }
+      updatedSelectedKanji = [...currentState.selectedKanji, kanji];
+    }
+
     const now = Date.now();
 
     await this.state.storage.sql.exec(
