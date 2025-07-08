@@ -1,0 +1,21 @@
+{
+  "name": "@majibattle/workers",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers for MajiBattle",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "build": "vite build",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@majibattle/shared": "file:../shared"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250628.0",
+    "typescript": "^5.1.6",
+    "vite": "^7.0.0",
+    "wrangler": "^4.20.5"
+  }
+}

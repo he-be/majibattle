@@ -1,0 +1,80 @@
+name: Playwright E2E Tests
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  e2e-tests:
+    name: E2E Tests
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Volta environment
+        run: |
+          export VOLTA_HOME="$HOME/.volta"
+          export PATH="$VOLTA_HOME/bin:$PATH"
+          echo "VOLTA_HOME=$VOLTA_HOME" >> $GITHUB_ENV
+          echo "$VOLTA_HOME/bin" >> $GITHUB_PATH
+
+      - name: Cache node_modules
+        uses: corca-ai/local-cache@v2
+        with:
+          path: node_modules
+          key: deps-e2e-${{ hashFiles('package-lock.json') }}
+          base: /tmp/cache
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check if Playwright browsers exist locally
+        id: check-browsers
+        run: |
+          if [ -d ~/.cache/ms-playwright ]; then
+            echo "browsers-exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "browsers-exist=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Playwright browsers
+        if: steps.check-browsers.outputs.browsers-exist == 'false'
+        run: npx playwright install chromium
+
+      - name: Build project for E2E
+        run: npm run build
+
+      - name: Kill any existing processes on port 8787
+        run: |
+          # Kill any process using port 8787
+          sudo fuser -k 8787/tcp || true
+          # Wait a moment for cleanup
+          sleep 2
+
+      - name: Run Playwright E2E tests
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results-${{ github.run_id }}
+          path: test-results/
+          retention-days: 7

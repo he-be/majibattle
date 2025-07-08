@@ -2,38 +2,41 @@
   "name": "majibattle",
   "version": "1.0.0",
   "description": "AI-driven Cloudflare Workers project with self-correcting environment",
-  "main": "src/index.ts",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "wrangler dev src/index.ts",
-    "build": "vite build",
-    "deploy": "wrangler deploy",
+    "dev": "npm run dev --workspace=@majibattle/workers",
+    "build": "npm run build --workspaces",
+    "deploy": "npm run deploy --workspace=@majibattle/workers",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}'",
-    "lint:fix": "eslint 'src/**/*.{js,jsx,ts,tsx}' --fix",
-    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json,css,md}'",
-    "format:check": "prettier --check 'src/**/*.{js,jsx,ts,tsx,json,css,md}'",
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint 'packages/**/*.{js,jsx,ts,tsx}'",
+    "lint:fix": "eslint 'packages/**/*.{js,jsx,ts,tsx}' --fix",
+    "format": "prettier --write 'packages/**/*.{js,jsx,ts,tsx,json,css,md}'",
+    "format:check": "prettier --check 'packages/**/*.{js,jsx,ts,tsx,json,css,md}'",
+    "typecheck": "npm run typecheck --workspaces",
     "prepare": "husky"
   },
   "keywords": ["ai-driven", "cloudflare-workers", "typescript", "vite", "playwright"],
   "author": "",
   "license": "MIT",
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "packages/**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write",
       "vitest related --run"
     ],
-    "*.{js,jsx}": [
+    "packages/**/*.{js,jsx}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,css,md}": [
+    "packages/**/*.{json,css,md}": [
       "prettier --write"
     ]
   },

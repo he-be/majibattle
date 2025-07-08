@@ -1,0 +1,11 @@
+{
+  "name": "@majibattle/client",
+  "version": "1.0.0",
+  "description": "Frontend client for MajiBattle",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8080",
+    "build": "echo 'Static files - no build needed'",
+    "typecheck": "echo 'No TypeScript files in client package'"
+  }
+}

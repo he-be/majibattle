@@ -1,5 +1,16 @@
 // Cloudflare Workers サンプルアプリケーション
 
+interface Env {
+  // eslint-disable-next-line no-undef
+  GAME_SESSION: DurableObjectNamespace;
+}
+
+// Phase 1 placeholder types - will be replaced with proper imports in Phase 2
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+declare const DurableObjectState: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+declare const DurableObjectNamespace: any;
+
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 
 export function getRandomItem(): string {
@@ -8,13 +19,13 @@ export function getRandomItem(): string {
 }
 
 function generateHTML(message: string): string {
-  return \`
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>\${message}</title>
+    <title>${message}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -63,12 +74,25 @@ function generateHTML(message: string): string {
 <body>
     <div class="container">
         <h1>AI-Driven Development Sample</h1>
-        <div class="message">\${message}</div>
+        <div class="message">${message}</div>
         <a href="/" class="reload-button">Generate New</a>
     </div>
 </body>
 </html>
-  \`;
+  `;
+}
+
+// Placeholder GameSession Durable Object for Phase 1
+export class GameSession {
+  constructor(
+    // eslint-disable-next-line no-undef
+    private state: DurableObjectState,
+    private env: Env
+  ) {}
+
+  async fetch(_request: Request): Promise<Response> {
+    return new Response('GameSession placeholder', { status: 200 });
+  }
 }
 
 export default {
