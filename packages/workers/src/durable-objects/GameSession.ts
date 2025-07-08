@@ -8,8 +8,8 @@ export class GameSession {
   constructor(
     // eslint-disable-next-line no-undef
     private state: DurableObjectState,
-
-    private env: Env
+    // eslint-disable-next-line no-undef
+    private env: { GAME_SESSION: DurableObjectNamespace }
   ) {
     this.kanjiManager = new KanjiDataManager();
   }
@@ -219,10 +219,4 @@ export class GameSession {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-}
-
-// Type definitions for Cloudflare Workers
-interface Env {
-  // eslint-disable-next-line no-undef
-  GAME_SESSION: DurableObjectNamespace;
 }
