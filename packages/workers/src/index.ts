@@ -5,6 +5,8 @@
 export { GameSession } from './durable-objects/GameSession';
 export { GameSessionV2 } from './durable-objects/GameSessionV2';
 
+import { SpellGenerationService } from './services/SpellGenerationService';
+
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 
 export function getRandomItem(): string {
@@ -293,6 +295,169 @@ function generateGameHTML(): string {
                 font-size: 0.9rem;
             }
         }
+        
+        /* Spell Modal Styles */
+        .spell-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .spell-result {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .spell-result::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .spell-result.rare::before {
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+        }
+        
+        .spell-result.epic::before {
+            background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+        }
+        
+        .spell-result.legendary::before {
+            background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+            animation: shimmer 2s linear infinite;
+        }
+        
+        .spell-name {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #1f2937;
+            text-align: center;
+        }
+        
+        .spell-rarity {
+            text-align: center;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: #6b7280;
+        }
+        
+        .spell-result.rare .spell-rarity { color: #3b82f6; }
+        .spell-result.epic .spell-rarity { color: #8b5cf6; }
+        .spell-result.legendary .spell-rarity { color: #f59e0b; }
+        
+        .spell-description {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #4b5563;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .spell-details {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+        
+        .spell-stat {
+            text-align: center;
+        }
+        
+        .spell-stat .label {
+            display: block;
+            font-size: 0.9em;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        
+        .spell-stat .value {
+            display: block;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .spell-effects h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+        
+        .spell-effects ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .spell-effects li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .close-button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .close-button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
     </style>
 </head>
 <body>
@@ -555,24 +720,89 @@ function generateGameHTML(): string {
                 }
             }
             
-            createSpell() {
+            async createSpell() {
                 if (this.selectedKanji.length !== this.maxSelection) {
                     this.showStatus('4つの漢字を選択してください', 'warning');
                     return;
                 }
                 
-                const spell = this.selectedKanji.join('');
-                this.showStatus(\`呪文「\${spell}」を作成しました！\`, 'success');
+                this.showStatus('呪文を生成中...', 'info');
+                this.elements.createSpellButton.disabled = true;
                 
-                // 実際の実装では、ここでAPIに送信して呪文の効果を取得
+                try {
+                    const response = await fetch(\`/api/game/\${this.sessionId}/spell\`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        this.displaySpellResult(result.data);
+                    } else {
+                        this.showStatus(result.error || '呪文生成に失敗しました', 'warning');
+                        this.elements.createSpellButton.disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Create spell error:', error);
+                    this.showStatus('ネットワークエラーが発生しました', 'warning');
+                    this.elements.createSpellButton.disabled = false;
+                }
+            }
+            
+            displaySpellResult(spellResult) {
+                // 呪文結果を表示
+                const spellModal = document.createElement('div');
+                spellModal.className = 'spell-modal';
+                spellModal.innerHTML = \`
+                    <div class="spell-result \${spellResult.rarity}">
+                        <h2 class="spell-name">\${spellResult.spell}</h2>
+                        <div class="spell-rarity">\${this.getRarityText(spellResult.rarity)}</div>
+                        <p class="spell-description">\${spellResult.description}</p>
+                        <div class="spell-details">
+                            <div class="spell-stat">
+                                <span class="label">属性:</span>
+                                <span class="value">\${spellResult.element}</span>
+                            </div>
+                            <div class="spell-stat">
+                                <span class="label">威力:</span>
+                                <span class="value">\${spellResult.power}/10</span>
+                            </div>
+                        </div>
+                        <div class="spell-effects">
+                            <h3>効果:</h3>
+                            <ul>
+                                \${spellResult.effects.map(effect => \`<li>\${effect}</li>\`).join('')}
+                            </ul>
+                        </div>
+                        <button class="close-button" onclick="this.closest('.spell-modal').remove()">閉じる</button>
+                    </div>
+                \`;
+                
+                document.body.appendChild(spellModal);
+                
+                // 3秒後に自動的にリセット
                 setTimeout(() => {
+                    spellModal.remove();
                     this.reset();
-                }, 3000);
+                }, 10000);
+            }
+            
+            getRarityText(rarity) {
+                const rarityTexts = {
+                    common: 'コモン',
+                    rare: 'レア',
+                    epic: 'エピック',
+                    legendary: 'レジェンダリー'
+                };
+                return rarityTexts[rarity] || rarity;
             }
             
             bindEvents() {
                 this.elements.resetButton.addEventListener('click', async () => await this.reset());
-                this.elements.createSpellButton.addEventListener('click', () => this.createSpell());
+                this.elements.createSpellButton.addEventListener('click', async () => await this.createSpell());
             }
             
             showStatus(message, type = 'info') {
@@ -595,6 +825,8 @@ function generateGameHTML(): string {
 interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
+  GEMINI_API_KEY: string;
+  GEMINI_MODEL: string;
 }
 
 export default {
@@ -677,6 +909,11 @@ async function handleGameAPI(request: Request, env: Env, url: URL): Promise<Resp
       // POST /api/game/{sessionId}/reset - Reset session
       if (method === 'POST' && pathSegments[3] === 'reset') {
         return await resetGameSession(env, sessionId, corsHeaders);
+      }
+
+      // POST /api/game/{sessionId}/spell - Generate spell
+      if (method === 'POST' && pathSegments[3] === 'spell') {
+        return await generateSpell(request, env, sessionId, corsHeaders);
       }
     }
 
@@ -822,4 +1059,83 @@ async function resetGameSession(
     status: response.status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders },
   });
+}
+
+/**
+ * Generate spell using AI
+ */
+async function generateSpell(
+  request: Request,
+  env: Env,
+  sessionId: string,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  try {
+    // Get current session state to verify kanji selection
+    const durableObjectId = env.GAME_SESSION.idFromName(sessionId);
+    const durableObject = env.GAME_SESSION.get(durableObjectId);
+
+    const stateResponse = await durableObject.fetch(
+      new Request('https://fake-host/state', {
+        method: 'GET',
+      })
+    );
+
+    if (!stateResponse.ok) {
+      return new Response(JSON.stringify({ error: 'Session not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    const sessionData = (await stateResponse.json()) as any;
+
+    if (!sessionData.success || !sessionData.data) {
+      return new Response(JSON.stringify({ error: 'Invalid session state' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    const selectedKanji = sessionData.data.selectedKanji;
+
+    if (!selectedKanji || selectedKanji.length !== 4) {
+      return new Response(JSON.stringify({ error: 'Please select exactly 4 kanji' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    // Initialize spell generation service
+    const spellService = new SpellGenerationService(env.GEMINI_API_KEY, env.GEMINI_MODEL);
+
+    // Generate spell
+    const spellResult = await spellService.generateSpell(selectedKanji);
+
+    // TODO: Store spell in session history (implement in next task)
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: spellResult,
+        cached: false,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      }
+    );
+  } catch (error) {
+    console.error('Spell generation error:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to generate spell',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      }
+    );
+  }
 }
