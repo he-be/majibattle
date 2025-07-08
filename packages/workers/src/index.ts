@@ -1,7 +1,9 @@
 // Cloudflare Workers サンプルアプリケーション
 
 // Import proper GameSession implementation
+// Export both versions - V2 for new deployments with SQL support
 export { GameSession } from './durable-objects/GameSession';
+export { GameSessionV2 } from './durable-objects/GameSessionV2';
 
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 

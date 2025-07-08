@@ -132,25 +132,44 @@ await this.state.storage.sql.exec(`
 - 本番: Cloudflare Workers（本番ランタイム）
 - SQLiteの動作差異の可能性
 
+## 実装されたソリューション
+
+### Step 1: エラーログ強化 ✅
+- GameSession.tsにSQL可用性とエラー詳細のログを追加
+- エラーレスポンスにスタックトレースとSQL状態を含める
+
+### Step 2: Durable Objectsクラスリネーム ✅
+**実装内容:**
+1. `GameSessionV2.ts`を新規作成
+   - 既存のGameSessionと同じ機能
+   - V2識別子をエラーレスポンスに追加
+   
+2. `wrangler.toml`を更新
+   - staging環境: GameSessionV2を使用、migration tag v2
+   - production環境: GameSessionV2を使用、migration tag v2
+   - 開発環境: GameSessionを維持（テスト互換性のため）
+
+3. `index.ts`を更新
+   - GameSessionとGameSessionV2の両方をエクスポート
+
+**理由:** 既存のDurable ObjectsインスタンスにSQL機能を追加できないため、新しいクラス名で新規インスタンスを作成
+
 ## 次のステップ
 
 ### 優先度 High
-1. **ステージング環境ログ確認**
-   - Cloudflare Dashboard のReal-time Logsで500エラー詳細確認
-   - GameSession.initializeDatabase()のエラー詳細取得
-
-2. **強制再デプロイメント**
-   - Durable Objects削除→再作成
-   - マイグレーション強制実行
+1. **デプロイメントと検証**
+   - 変更をプッシュしてGitHub Actions経由でステージング環境にデプロイ
+   - `/api/game/new`エンドポイントが正常に動作することを確認
+   - GameSessionV2のログを確認してSQL初期化が成功することを検証
 
 ### 優先度 Medium  
-3. **エラーハンドリング強化**
-   - GameSession内でより詳細なエラーログ
-   - SQLエラーの具体的内容をレスポンスに含める
+2. **本番環境への適用**
+   - ステージング環境で動作確認後、本番環境にデプロイ
+   - 既存のGameSessionインスタンスからのデータ移行は不要（新規開始）
 
-4. **代替手段検証**
-   - Durable Objects KV Storageでの実装
-   - SQLite使用しない一時的な実装
+3. **クリーンアップ**
+   - 古いGameSessionクラスの削除検討（すべての環境で安定後）
+   - 不要なログ出力の削除
 
 ## ファイル構成
 
@@ -183,10 +202,12 @@ Integration:   完全動作 (ローカル)
 | 2025-07-08 14:00 | Vite設定修正、ビルドサイズ正常化 | ✅ |
 | 2025-07-08 14:30 | wrangler.toml環境設定追加 | ✅ |
 | 2025-07-08 15:00 | GitHubActions CI/CD追加 | ✅ |
-| 2025-07-08 15:15 | 強制再デプロイメント実行 | 🔄 調査中 |
+| 2025-07-08 15:15 | 強制再デプロイメント実行 | ❌ SQL初期化失敗 |
+| 2025-07-08 21:00 | Step 1: エラーログ強化実装 | ✅ |
+| 2025-07-08 22:35 | Step 2: GameSessionV2クラス作成 | ✅ |
 
 ---
 
-**最終更新:** 2025-07-08 15:18  
+**最終更新:** 2025-07-08 22:35  
 **担当者:** Claude Code  
-**状態:** 調査継続中
+**状態:** デプロイメント待ち
