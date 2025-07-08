@@ -35,26 +35,50 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Playwright browser cache
+        run: |
+          # Set up local playwright cache directory
+          export PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/playwright-browsers"
+          echo "PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH" >> $GITHUB_ENV
+          mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
+
       - name: Check if Playwright browsers exist locally
         id: check-browsers
         run: |
-          if [ -d ~/.cache/ms-playwright ]; then
+          if [ -d "$PLAYWRIGHT_BROWSERS_PATH/chromium-"* ]; then
             echo "browsers-exist=true" >> $GITHUB_OUTPUT
+            echo "Playwright browsers already installed in $PLAYWRIGHT_BROWSERS_PATH"
           else
             echo "browsers-exist=false" >> $GITHUB_OUTPUT
+            echo "Playwright browsers not found, will install"
           fi
 
       - name: Install Playwright browsers
         if: steps.check-browsers.outputs.browsers-exist == 'false'
-        run: npx playwright install chromium
+        run: |
+          # Install only chromium browser without system dependencies
+          # This avoids sudo requirements on self-hosted runners
+          npx playwright install chromium --dry-run || true
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 npx playwright install chromium || {
+            echo "Failed to install Playwright browsers, attempting manual download..."
+            # Fallback: manually download if automated install fails
+            npx playwright install-deps chromium || echo "Dependency installation skipped (requires sudo)"
+            npx playwright install chromium
+          }
 
       - name: Build project for E2E
         run: npm run build
 
       - name: Kill any existing processes on port 8787
         run: |
-          # Kill any process using port 8787
-          sudo fuser -k 8787/tcp || true
+          # Kill any process using port 8787 without sudo
+          # First try lsof which doesn't require sudo
+          if command -v lsof >/dev/null 2>&1; then
+            lsof -ti:8787 | xargs -r kill -9 || true
+          else
+            # Fallback to fuser without sudo (may not work on all systems)
+            fuser -k 8787/tcp 2>/dev/null || true
+          fi
           # Wait a moment for cleanup
           sleep 2
 
@@ -62,6 +86,7 @@ jobs:
         run: npm run test:e2e
         env:
           CI: true
+          PLAYWRIGHT_BROWSERS_PATH: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
