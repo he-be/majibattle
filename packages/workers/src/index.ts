@@ -723,7 +723,10 @@ async function createNewGameSession(
     JSON.stringify({
       sessionId,
       success: sessionData.success,
-      data: sessionData.data,
+      data: {
+        ...sessionData.data,
+        sessionId, // Use the consistent sessionId from the Durable Object namespace
+      },
     }),
     {
       status: 201,
