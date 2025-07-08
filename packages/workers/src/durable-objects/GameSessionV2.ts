@@ -2,7 +2,7 @@ import { GameSessionState, APIResponse } from '@majibattle/shared';
 import { generateSessionId } from '@majibattle/shared';
 import { KanjiDataManager } from '../data/KanjiDataManager';
 
-export class GameSession {
+export class GameSessionV2 {
   private kanjiManager: KanjiDataManager;
   private initialized: boolean = false;
   private initError: Error | null = null;
@@ -23,12 +23,12 @@ export class GameSession {
     // Ensure database is initialized
     if (!this.initialized && !this.initError) {
       try {
-        console.log('GameSession: Starting database initialization...');
+        console.log('GameSessionV2: Starting database initialization...');
         await this.initializeDatabase();
         this.initialized = true;
-        console.log('GameSession: Database initialization successful');
+        console.log('GameSessionV2: Database initialization successful');
       } catch (e: any) {
-        console.error('FATAL: GameSession Database Initialization Failed:', e);
+        console.error('FATAL: GameSessionV2 Database Initialization Failed:', e);
         console.error('Error stack:', e.stack);
         console.error('SQL availability check:', typeof this.state.storage.sql);
         this.initError = e;
@@ -37,23 +37,26 @@ export class GameSession {
 
     // Check initialization status
     if (this.initError) {
-      console.error('GameSession fetch called but initialization failed:', this.initError.message);
+      console.error(
+        'GameSessionV2 fetch called but initialization failed:',
+        this.initError.message
+      );
       return new Response(
         JSON.stringify({
           error: 'Durable Object initialization failed',
           details: this.initError.message,
           stack: this.initError.stack,
-          sqlAvailable: typeof this.state.storage.sql
+          sqlAvailable: typeof this.state.storage.sql,
+          version: 'V2',
         }),
-        { 
+        {
           status: 500,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         }
       );
     }
 
     try {
-
       switch (method) {
         case 'POST':
           if (url.pathname.endsWith('/create')) {
@@ -80,17 +83,17 @@ export class GameSession {
 
       return this.errorResponse('Not found', 404);
     } catch (error) {
-      console.error('GameSession error:', error);
+      console.error('GameSessionV2 error:', error);
       return this.errorResponse('Internal server error', 500);
     }
   }
 
   private async initializeDatabase(): Promise<void> {
-    console.log('initializeDatabase: Starting SQL database setup...');
-    console.log('initializeDatabase: state.storage available:', !!this.state.storage);
-    console.log('initializeDatabase: state.storage.sql available:', !!this.state.storage.sql);
-    console.log('initializeDatabase: SQL exec type:', typeof this.state.storage.sql?.exec);
-    
+    console.log('initializeDatabase V2: Starting SQL database setup...');
+    console.log('initializeDatabase V2: state.storage available:', !!this.state.storage);
+    console.log('initializeDatabase V2: state.storage.sql available:', !!this.state.storage.sql);
+    console.log('initializeDatabase V2: SQL exec type:', typeof this.state.storage.sql?.exec);
+
     try {
       await this.state.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS game_sessions (
@@ -103,9 +106,9 @@ export class GameSession {
           last_updated_at INTEGER NOT NULL
         )
       `);
-      console.log('initializeDatabase: Table creation successful');
+      console.log('initializeDatabase V2: Table creation successful');
     } catch (error) {
-      console.error('initializeDatabase: SQL exec failed:', error);
+      console.error('initializeDatabase V2: SQL exec failed:', error);
       throw error;
     }
   }
