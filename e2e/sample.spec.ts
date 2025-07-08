@@ -38,34 +38,31 @@ test.describe('MajiBattle Game E2E Tests', () => {
     // Select 4 kanji (wait for API responses)
     const kanjiItems = page.locator('.kanji-item');
     
-    await kanjiItems.nth(0).click();
-    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
-    await expect(page.locator('#selected-count')).toHaveText('1');
-    
-    await kanjiItems.nth(1).click();
-    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
-    await expect(page.locator('#selected-count')).toHaveText('2');
-    
-    await kanjiItems.nth(2).click();
-    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
-    await expect(page.locator('#selected-count')).toHaveText('3');
-    
-    await kanjiItems.nth(3).click();
-    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
-    await expect(page.locator('#selected-count')).toHaveText('4');
+    for (let i = 0; i < 4; i++) {
+      await kanjiItems.nth(i).click();
+      await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/select'));
+      await expect(page.locator('#selected-count')).toHaveText(String(i + 1));
+    }
     
     // Check spell creation button is enabled
     await expect(page.locator('#create-spell-button')).toBeEnabled();
     
-    // Create spell
-    await page.locator('#create-spell-button').click();
+    // Create spell and wait for spell response
+    await Promise.all([
+      page.locator('#create-spell-button').click(),
+      page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/spell'))
+    ]);
     
-    // Check success message appears
-    await expect(page.locator('#status-message')).toContainText('呪文');
+    // Wait for spell modal to appear
+    await expect(page.locator('.spell-modal')).toBeVisible();
+    await expect(page.locator('.spell-result')).toBeVisible();
     
-    // Check that selection is reset after 3 seconds (or manually reset)
-    await page.waitForTimeout(3500); // Wait for auto-reset
+    // Wait for the auto-reset to happen (modal will auto-close and reset)
+    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/reset'));
+    
+    // Check that selection is reset
     await expect(page.locator('#selected-count')).toHaveText('0');
+    await expect(page.locator('#status-message')).toContainText('選択をリセットしました');
   });
 
   test('should handle kanji deselection', async ({ page }) => {
