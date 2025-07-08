@@ -13,7 +13,7 @@ export interface SpellResult {
   effects: string[];
   power: number;
   element: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity: 'useless' | 'common' | 'rare' | 'epic' | 'legendary';
   createdAt: Date;
   kanjiUsed: string[]; // 使用した漢字の記録
 }

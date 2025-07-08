@@ -333,6 +333,10 @@ function generateGameHTML(): string {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         }
         
+        .spell-result.useless::before {
+            background: linear-gradient(90deg, #9ca3af 0%, #6b7280 100%);
+        }
+        
         .spell-result.rare::before {
             background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
         }
@@ -362,6 +366,7 @@ function generateGameHTML(): string {
             color: #6b7280;
         }
         
+        .spell-result.useless .spell-rarity { color: #6b7280; }
         .spell-result.rare .spell-rarity { color: #3b82f6; }
         .spell-result.epic .spell-rarity { color: #8b5cf6; }
         .spell-result.legendary .spell-rarity { color: #f59e0b; }
@@ -792,6 +797,7 @@ function generateGameHTML(): string {
             
             getRarityText(rarity) {
                 const rarityTexts = {
+                    useless: 'ゴミ',
                     common: 'コモン',
                     rare: 'レア',
                     epic: 'エピック',
@@ -956,7 +962,7 @@ async function createNewGameSession(
     throw new Error('Failed to create session');
   }
 
-  const sessionData = (await response.json()) as { success: boolean; data: any };
+  const sessionData = (await response.json()) as { success: boolean; data: unknown };
 
   return new Response(
     JSON.stringify({
@@ -1088,7 +1094,7 @@ async function generateSpell(
       });
     }
 
-    const sessionData = (await stateResponse.json()) as any;
+    const sessionData = (await stateResponse.json()) as { success: boolean; data?: { selectedKanji?: string[] } };
 
     if (!sessionData.success || !sessionData.data) {
       return new Response(JSON.stringify({ error: 'Invalid session state' }), {

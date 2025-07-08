@@ -45,8 +45,7 @@ export class SpellGenerationService {
         kanjiUsed: selectedKanji,
         createdAt: new Date(),
       };
-    } catch (error) {
-      console.error('Spell generation error:', error);
+    } catch {
       // Fallback to deterministic generation if API fails
       return this.generateFallbackSpell(kanjiDetails);
     }
@@ -56,25 +55,27 @@ export class SpellGenerationService {
     const kanjiInfo = kanjiDetails
       .map((k) => `${k.character}（${k.reading}）- ${k.meaning}`)
       .join('、');
+    
+    const spellName = kanjiDetails.map((k) => k.character).join('');
 
-    return `あなたは創造的な呪文クリエイターです。以下の4つの漢字を使って、独創的で面白い呪文を生成してください。
+    return `あなたは創造的な呪文クリエイターです。以下の4つの漢字で表される呪文を使って、独創的で面白い説明を生成してください。
 
-使用する漢字: ${kanjiInfo}
+4つの漢字で表される呪文: ${kanjiInfo}
 
 以下のJSON形式で呪文を生成してください:
 {
-  "spell": "呪文名（漢字を組み合わせた創造的な名前）",
+  "spell": "${spellName}",
   "description": "呪文の詳細な説明（どのような効果があるか、どんな場面で使うか）",
   "effects": ["効果1", "効果2", "効果3"],
   "power": 1-10の威力レベル（数値）,
-  "element": "属性（火、水、土、風、光、闇、雷、氷、自然、精神、時空、無のいずれか）",
-  "rarity": "レアリティ（common、rare、epic、legendaryのいずれか）"
+  "element": "属性（火、水、土、風、光、闇、雷、氷、自然、精神、時空、無、弱のいずれか）",
+  "rarity": "レアリティ（useless, common、rare、epic、legendaryのいずれか）"
 }
 
 重要な指示:
-- 呪文名は選択された漢字を創造的に組み合わせて作成
+- 選択された漢字を創造的に組み合わせ呪文の説明を生成する
 - 説明は100文字以上で魅力的に
-- 効果は具体的で面白いものを3つ
+- 効果はナンセンスであることを重視し、具体的で面白いものを3つ
 - 威力は漢字の組み合わせの相性で決定
 - レアリティは呪文の独創性と威力で決定
 - 必ず有効なJSONを返すこと`;
@@ -156,9 +157,8 @@ export class SpellGenerationService {
         element: this.validateElement(parsed.element),
         rarity: this.validateRarity(parsed.rarity),
       };
-    } catch (error) {
-      console.error('Failed to parse Gemini response:', error);
-      throw error;
+    } catch {
+      throw new Error('Failed to parse Gemini response');
     }
   }
 
@@ -176,13 +176,14 @@ export class SpellGenerationService {
       '精神',
       '時空',
       '無',
+      '弱',
     ];
     return validElements.includes(element) ? element : '無';
   }
 
-  private validateRarity(rarity: string): 'common' | 'rare' | 'epic' | 'legendary' {
-    const validRarities = ['common', 'rare', 'epic', 'legendary'];
-    return validRarities.includes(rarity) ? (rarity as any) : 'common';
+  private validateRarity(rarity: string): 'useless' | 'common' | 'rare' | 'epic' | 'legendary' {
+    const validRarities = ['useless', 'common', 'rare', 'epic', 'legendary'] as const;
+    return validRarities.includes(rarity as typeof validRarities[number]) ? (rarity as typeof validRarities[number]) : 'common';
   }
 
   private generateFallbackSpell(kanjiDetails: KanjiData[]): SpellResult {
@@ -191,18 +192,19 @@ export class SpellGenerationService {
     const avgFrequency = totalFrequency / kanjiDetails.length;
 
     const power = Math.ceil(avgFrequency / 10);
-    const elements = ['火', '水', '土', '風', '光', '闇', '雷', '氷'];
+    const elements = ['火', '水', '土', '風', '光', '闇', '雷', '氷', '弱'];
     const elementIndex = kanjiDetails[0].character.charCodeAt(0) % elements.length;
 
-    let rarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
-    if (avgFrequency < 40) rarity = 'legendary';
-    else if (avgFrequency < 60) rarity = 'epic';
-    else if (avgFrequency < 80) rarity = 'rare';
+    let rarity: 'useless' | 'common' | 'rare' | 'epic' | 'legendary' = 'common';
+    if (avgFrequency < 30) rarity = 'legendary';
+    else if (avgFrequency < 45) rarity = 'epic';
+    else if (avgFrequency < 65) rarity = 'rare';
+    else if (avgFrequency > 85) rarity = 'useless';
 
     const spellName = kanjiDetails.map((k) => k.character).join('');
 
     return {
-      spell: `${spellName}の術`,
+      spell: spellName,
       description: `${kanjiDetails.map((k) => k.meaning).join('と')}の力を組み合わせた神秘的な呪文。`,
       effects: [
         `${elements[elementIndex]}属性のダメージを与える`,
