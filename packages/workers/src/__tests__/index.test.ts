@@ -26,12 +26,12 @@ describe('AI-Driven Development Sample App', () => {
       // Dynamic import for worker
       const worker = await import('../index');
       const request = mockRequest('https://example.com/');
-      
+
       const response = await worker.default.fetch(request);
-      
+
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toContain('text/html');
-      
+
       const html = await response.text();
       expect(html).toContain('<!DOCTYPE html>');
       expect(html).toContain('<title>');
@@ -42,23 +42,23 @@ describe('AI-Driven Development Sample App', () => {
     test('should handle API endpoint', async () => {
       const worker = await import('../index');
       const request = mockRequest('https://example.com/api/random');
-      
+
       const response = await worker.default.fetch(request);
-      
+
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toBe('application/json');
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
-      
-      const json = await response.json() as { message: string };
+
+      const json = (await response.json()) as { message: string };
       expect(sampleData).toContain(json.message);
     });
 
     test('should return 404 for unknown paths', async () => {
       const worker = await import('../index');
       const request = mockRequest('https://example.com/unknown');
-      
+
       const response = await worker.default.fetch(request);
-      
+
       expect(response.status).toBe(404);
       expect(await response.text()).toBe('Not Found');
     });
@@ -66,9 +66,9 @@ describe('AI-Driven Development Sample App', () => {
     test('should include proper cache headers for HTML', async () => {
       const worker = await import('../index');
       const request = mockRequest('https://example.com/');
-      
+
       const response = await worker.default.fetch(request);
-      
+
       expect(response.headers.get('Cache-Control')).toBe('no-cache');
     });
   });

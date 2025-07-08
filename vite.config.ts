@@ -7,7 +7,7 @@ export default defineConfig(
     test: {
       globals: true,
       environment: 'node',
-      include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+      include: ['packages/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
       exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
       coverage: {
         provider: 'v8',
@@ -29,7 +29,7 @@ export default defineConfig(
       emptyOutDir: true,
       minify: true,
       rollupOptions: {
-        input: './src/index.ts',
+        input: './packages/workers/src/index.ts',
         output: {
           format: 'es'
         }
@@ -37,7 +37,7 @@ export default defineConfig(
     },
     resolve: {
       alias: {
-        '@': '/src'
+        '@': '/packages/workers/src'
       }
     }
   })

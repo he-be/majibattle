@@ -15,7 +15,12 @@ name = "majibattle"
 [build]
 command = "npm run build"
 
-# Miniflare settings for local development
-[miniflare]
-# Enable KV namespaces, Durable Objects, etc. when needed
-kv_persist = true
+# Durable Objects configuration
+[[durable_objects.bindings]]
+name = "GAME_SESSION"
+class_name = "GameSession"
+
+# Durable Objects migrations
+[[migrations]]
+tag = "v1"
+new_classes = [ "GameSession" ]
