@@ -34,9 +34,10 @@ describe('AI-Driven Development Sample App', () => {
 
       const html = await response.text();
       expect(html).toContain('<!DOCTYPE html>');
-      expect(html).toContain('<title>');
-      expect(html).toContain('class="message"');
-      expect(html).toContain('Generate New');
+      expect(html).toContain('<title>魔字武闘 - MajiBattle</title>');
+      expect(html).toContain('class="game-title"');
+      expect(html).toContain('魔字武闘');
+      expect(html).toContain('class="kanji-grid"');
     });
 
     test('should handle API endpoint', async () => {
