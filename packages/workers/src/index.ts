@@ -1152,7 +1152,11 @@ async function generateSpell(
     // Initialize spell generation service
     // In local dev/test environments, Secret Store binding may not be available
     let geminiApiKey: string;
-    if (env.GEMINI_API_KEY && typeof env.GEMINI_API_KEY.get === 'function') {
+    if (
+      env.GEMINI_API_KEY &&
+      typeof env.GEMINI_API_KEY === 'object' &&
+      'get' in env.GEMINI_API_KEY
+    ) {
       // Production: Use Secret Store binding
       geminiApiKey = await env.GEMINI_API_KEY.get();
     } else if (typeof env.GEMINI_API_KEY === 'string') {
