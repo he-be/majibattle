@@ -25,11 +25,11 @@ name = "majibattle"
 
 [[env.production.durable_objects.bindings]]
 name = "GAME_SESSION"
-class_name = "GameSessionV2"
+class_name = "GameSessionV3"
 
 [[env.production.migrations]]
-tag = "v2"
-new_sqlite_classes = [ "GameSessionV2" ]
+tag = "v3"
+new_sqlite_classes = [ "GameSessionV3" ]
 
 # Build settings
 [build]

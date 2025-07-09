@@ -1,9 +1,10 @@
 // Cloudflare Workers サンプルアプリケーション
 
 // Import proper GameSession implementation
-// Export both versions - V2 for new deployments with SQL support
+// Export all versions - V3 for production deployments with SQL support
 export { GameSession } from './durable-objects/GameSession';
 export { GameSessionV2 } from './durable-objects/GameSessionV2';
+export { GameSessionV3 } from './durable-objects/GameSessionV3';
 
 import { SpellGenerationService } from './services/SpellGenerationService';
 
