@@ -11,11 +11,7 @@ local_protocol = "http"
 [env.staging]
 name = "majibattle-staging"
 secrets_store_secrets = [
-  { 
-    binding = "GEMINI_API_KEY", 
-    store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", 
-    secret_name = "GEMINI_API_KEY" 
-  }
+  { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
 ]
 
 [[env.staging.durable_objects.bindings]]
@@ -30,11 +26,7 @@ new_sqlite_classes = [ "GameSessionV2" ]
 [env.production]
 name = "majibattle"
 secrets_store_secrets = [
-  { 
-    binding = "GEMINI_API_KEY", 
-    store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", 
-    secret_name = "GEMINI_API_KEY" 
-  }
+  { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
 ]
 
 [[env.production.durable_objects.bindings]]
