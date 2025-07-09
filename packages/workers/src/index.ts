@@ -865,7 +865,7 @@ interface Env {
   GAME_SESSION: DurableObjectNamespace;
   // 本番環境ではSecrets Storeのバインディングオブジェクト
   // ローカル開発では.dev.varsからの文字列
-  GEMINI_API_KEY: { get: () => Promise<string> } | string;
+  GEMINI_API_KEY: { get(): Promise<string> } | string;
   GEMINI_MODEL: string;
 }
 
@@ -1152,29 +1152,31 @@ async function generateSpell(
     }
 
     // Initialize spell generation service
-    // 両方の環境に対応する堅牢なチェック（手順書のパターンに従う）
-    let geminiApiKey: string | undefined;
+    let geminiApiKey: string;
 
-    if (
-      typeof env.GEMINI_API_KEY === 'object' &&
-      env.GEMINI_API_KEY !== null &&
-      'get' in env.GEMINI_API_KEY
-    ) {
+    // 公式ドキュメントのパターンに従う
+    if (typeof env.GEMINI_API_KEY !== 'string') {
       // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
       console.log('Accessing secret from Cloudflare Secrets Store...');
-      geminiApiKey = await env.GEMINI_API_KEY.get();
-    } else if (typeof env.GEMINI_API_KEY === 'string') {
+      try {
+        geminiApiKey = await env.GEMINI_API_KEY.get();
+        console.log('Successfully retrieved secret from Secrets Store');
+      } catch (e) {
+        console.error('Failed to get secret from Secrets Store:', e);
+        throw new Error(`Secrets Store error: ${e}`);
+      }
+    } else {
       // ローカル開発環境：.dev.varsからのプレーンな文字列
       console.log('Accessing secret from local .dev.vars file...');
       geminiApiKey = env.GEMINI_API_KEY;
     }
 
     if (!geminiApiKey) {
-      // バインディングの設定ミスやローカル変数の欠落時にここが実行される
       console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
+      geminiApiKey = '';
     }
 
-    const spellService = new UnifiedSpellGenerationService(geminiApiKey || '', env.GEMINI_MODEL);
+    const spellService = new UnifiedSpellGenerationService(geminiApiKey, env.GEMINI_MODEL);
 
     // Generate spell
     const rawSpellResult = await spellService.generateSpell(selectedKanji);
