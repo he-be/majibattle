@@ -13,6 +13,7 @@ name = "majibattle-staging"
 secrets_store_secrets = [
   { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
 ]
+vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17" }
 
 [[env.staging.durable_objects.bindings]]
 name = "GAME_SESSION"
@@ -28,6 +29,7 @@ name = "majibattle"
 secrets_store_secrets = [
   { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
 ]
+vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17" }
 
 [[env.production.durable_objects.bindings]]
 name = "GAME_SESSION"
