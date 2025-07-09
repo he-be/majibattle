@@ -531,6 +531,26 @@ function generateGameHTML(): string {
                     // セッション状態を取得して漢字をロード
                     const response = await fetch(\`/api/game/\${this.sessionId}\`);
                     if (!response.ok) {
+                        if (response.status === 404) {
+                            // セッションが見つからない場合は、古いIDを削除して新規作成
+                            console.log('Session not found, creating new session...');
+                            localStorage.removeItem('majibattle-session-id');
+                            this.sessionId = null;
+                            await this.ensureSession();
+                            
+                            // 再度セッション状態を取得
+                            const retryResponse = await fetch(\`/api/game/\${this.sessionId}\`);
+                            if (!retryResponse.ok) {
+                                throw new Error('Failed to load session after retry');
+                            }
+                            const retryResult = await retryResponse.json();
+                            if (retryResult.success && retryResult.data) {
+                                this.availableKanji = retryResult.data.currentKanji;
+                                this.selectedKanji = retryResult.data.selectedKanji;
+                                this.renderKanjiGrid();
+                                return;
+                            }
+                        }
                         throw new Error('Failed to load session');
                     }
                     
