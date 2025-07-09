@@ -7,6 +7,7 @@ export interface GameSessionState {
   lastUpdatedAt: Date;
 }
 
+// 従来の呪文結果（魔法系）
 export interface SpellResult {
   spell: string;
   description: string;
@@ -17,6 +18,23 @@ export interface SpellResult {
   createdAt: Date;
   kanjiUsed: string[]; // 使用した漢字の記録
 }
+
+// 新しい民俗学スタイルの呪文結果
+export interface FolkloreSpellResult {
+  name: string; // 従来のspell
+  kana: string; // カタカナ読み
+  story: string; // 背景物語（従来のdescription）
+  origin: string; // 由来・伝承（新規）
+  effects: string[]; // 観測された現象
+  power: number; // 危険度
+  attribute: string; // 民俗学的分類（従来のelement）
+  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+  createdAt: Date;
+  kanjiUsed: string[];
+}
+
+// 統合型（どちらでも使える）
+export type UnifiedSpellResult = SpellResult | FolkloreSpellResult;
 
 export interface SpellGenerationRequest {
   selectedKanji: string[];
