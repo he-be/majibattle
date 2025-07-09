@@ -163,7 +163,9 @@ jobs:
         run: npm run build
 
       - name: Deploy to production
-        run: npm run deploy --workspace=@majibattle/workers -- --env production
+        run: |
+          cd packages/workers
+          npx wrangler deploy --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
