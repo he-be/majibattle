@@ -83,7 +83,11 @@ export class UnifiedSpellGenerationService {
         } as FolkloreSpellResult;
       }
     } catch (error) {
-      console.warn('API call failed, using fallback generation:', error);
+      // 🔍 検査用: フォールバック実行の明確な表示
+      console.error('🔴 API call failed, using fallback generation:', error);
+      console.error('🔴 Error details:', error instanceof Error ? error.message : String(error));
+      console.error('🔴 Error stack:', error instanceof Error ? error.stack : 'No stack available');
+
       return this.generateFallbackSpell(kanjiDetails, currentStyle);
     }
   }
@@ -101,6 +105,13 @@ export class UnifiedSpellGenerationService {
    */
   private async callGeminiAPI(prompt: string): Promise<GeminiResponse> {
     const config = globalConfig.getConfig();
+
+    // 🔍 検査用: API Key の状態を確認
+    console.log('🔍 API Key check:');
+    console.log('- API Key exists:', !!this.apiKey);
+    console.log('- API Key length:', this.apiKey?.length || 0);
+    console.log('- API Key first 10 chars:', this.apiKey?.substring(0, 10) || 'undefined');
+    console.log('- API Endpoint:', this.apiEndpoint);
 
     const response = await fetch(`${this.apiEndpoint}?key=${this.apiKey}`, {
       method: 'POST',
@@ -140,6 +151,19 @@ export class UnifiedSpellGenerationService {
     });
 
     if (!response.ok) {
+      // 🔍 検査用: API エラーの詳細をログ出力
+      console.error('🔴 Gemini API Error Details:');
+      console.error('- Status:', response.status);
+      console.error('- Status Text:', response.statusText);
+      console.error('- Response Headers:', Object.fromEntries(response.headers.entries()));
+
+      try {
+        const errorBody = await response.text();
+        console.error('- Error Body:', errorBody);
+      } catch (e) {
+        console.error('- Could not read error body:', e);
+      }
+
       throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
     }
 
