@@ -863,7 +863,7 @@ function generateGameHTML(): string {
 interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
-  GEMINI_API_KEY: { get(): Promise<string> }; // Secret Store binding
+  GEMINI_API_KEY: { get(): Promise<string> } | string; // Secret Store binding or direct env var
   GEMINI_MODEL: string;
 }
 
@@ -1150,7 +1150,20 @@ async function generateSpell(
     }
 
     // Initialize spell generation service
-    const geminiApiKey = await env.GEMINI_API_KEY.get();
+    // In local dev/test environments, Secret Store binding may not be available
+    let geminiApiKey: string;
+    if (env.GEMINI_API_KEY && typeof env.GEMINI_API_KEY.get === 'function') {
+      // Production: Use Secret Store binding
+      geminiApiKey = await env.GEMINI_API_KEY.get();
+    } else if (typeof env.GEMINI_API_KEY === 'string') {
+      // Local dev: Use environment variable directly
+      geminiApiKey = env.GEMINI_API_KEY;
+    } else {
+      // Fallback for E2E tests
+      console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
+      geminiApiKey = '';
+    }
+
     const spellService = new UnifiedSpellGenerationService(geminiApiKey, env.GEMINI_MODEL);
 
     // Generate spell
