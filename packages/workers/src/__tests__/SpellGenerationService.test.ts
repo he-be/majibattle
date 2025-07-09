@@ -38,7 +38,7 @@ describe('SpellGenerationService', () => {
       expect(result.power).toBeGreaterThan(0);
       expect(result.power).toBeLessThanOrEqual(10);
       expect(['useless', 'common', 'rare', 'epic', 'legendary']).toContain(result.rarity);
-      expect(['火', '水', '風', '土', '光', '闇', '混沌', '無', '食', '音']).toContain(
+      expect(['火', '水', '風', '土', '光', '闇', '混沌', '無', '食', '音', '聖', '魔']).toContain(
         result.element
       );
     });
@@ -110,7 +110,20 @@ describe('SpellGenerationService', () => {
 
   describe('element validation', () => {
     test('should validate known elements including new creative elements', () => {
-      const validElements = ['火', '水', '風', '土', '光', '闇', '混沌', '無', '食', '音'];
+      const validElements = [
+        '火',
+        '水',
+        '風',
+        '土',
+        '光',
+        '闇',
+        '混沌',
+        '無',
+        '食',
+        '音',
+        '聖',
+        '魔',
+      ];
 
       validElements.forEach((element) => {
         // We can't directly test private methods, but we can test through fallback generation
@@ -163,7 +176,7 @@ describe('SpellGenerationService', () => {
       // Check that the result is valid and contains expected properties
       expect(result).toBeDefined();
       expect(result.spell).toBe('火水風土');
-      expect(['火', '水', '風', '土', '光', '闇', '混沌', '無', '食', '音']).toContain(
+      expect(['火', '水', '風', '土', '光', '闇', '混沌', '無', '食', '音', '聖', '魔']).toContain(
         result.element
       );
     });
