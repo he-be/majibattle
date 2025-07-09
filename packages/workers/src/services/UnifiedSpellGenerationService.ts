@@ -58,6 +58,11 @@ export class UnifiedSpellGenerationService {
     const prompt = template.createPrompt(kanjiDetails);
 
     try {
+      // 🔍 検査用: 送信するプロンプトをコンソール出力
+      console.log('=== SENDING PROMPT ===');
+      console.log(prompt);
+      console.log('======================');
+
       const response = await this.callGeminiAPI(prompt);
       const spellData = this.parseGeminiResponse(response, currentStyle);
 
@@ -154,6 +159,11 @@ export class UnifiedSpellGenerationService {
         throw new Error('No response text from Gemini');
       }
 
+      // 🔍 検査用: Geminiの生レスポンスをコンソール出力
+      console.log('=== GEMINI RAW RESPONSE ===');
+      console.log('Full text response:', text);
+      console.log('============================');
+
       // JSONを抽出
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
@@ -161,6 +171,11 @@ export class UnifiedSpellGenerationService {
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
+
+      // 🔍 検査用: パースされたJSONをコンソール出力
+      console.log('=== PARSED JSON ===');
+      console.log(JSON.stringify(parsed, null, 2));
+      console.log('===================');
 
       if (style === PROMPT_STYLES.TRADITIONAL) {
         return {
