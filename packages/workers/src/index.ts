@@ -863,9 +863,9 @@ function generateGameHTML(): string {
 interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
-  // 現在は従来のWorkers Secretsを使用（文字列）
-  // TODO: Secrets Store対応時は { get: () => Promise<string> } | string に変更
-  GEMINI_API_KEY?: string;
+  // 本番環境ではSecrets Storeのバインディングオブジェクト
+  // ローカル開発では.dev.varsからの文字列
+  GEMINI_API_KEY: { get: () => Promise<string> } | string;
   GEMINI_MODEL: string;
 }
 
@@ -1152,19 +1152,29 @@ async function generateSpell(
     }
 
     // Initialize spell generation service
-    // 現在は従来のWorkers Secretsを使用（権限エラー回避のため）
-    const geminiApiKey = env.GEMINI_API_KEY || '';
+    // 両方の環境に対応する堅牢なチェック（手順書のパターンに従う）
+    let geminiApiKey: string | undefined;
 
-    if (!geminiApiKey) {
-      console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
-      console.warn(
-        'Note: Currently using traditional Workers Secrets due to CI/CD permission issues'
-      );
-    } else {
-      console.log('Accessing secret from Workers Secrets...');
+    if (
+      typeof env.GEMINI_API_KEY === 'object' &&
+      env.GEMINI_API_KEY !== null &&
+      'get' in env.GEMINI_API_KEY
+    ) {
+      // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
+      console.log('Accessing secret from Cloudflare Secrets Store...');
+      geminiApiKey = await env.GEMINI_API_KEY.get();
+    } else if (typeof env.GEMINI_API_KEY === 'string') {
+      // ローカル開発環境：.dev.varsからのプレーンな文字列
+      console.log('Accessing secret from local .dev.vars file...');
+      geminiApiKey = env.GEMINI_API_KEY;
     }
 
-    const spellService = new UnifiedSpellGenerationService(geminiApiKey, env.GEMINI_MODEL);
+    if (!geminiApiKey) {
+      // バインディングの設定ミスやローカル変数の欠落時にここが実行される
+      console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
+    }
+
+    const spellService = new UnifiedSpellGenerationService(geminiApiKey || '', env.GEMINI_MODEL);
 
     // Generate spell
     const rawSpellResult = await spellService.generateSpell(selectedKanji);

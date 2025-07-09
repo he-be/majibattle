@@ -10,11 +10,10 @@ local_protocol = "http"
 # Staging environment for PR previews
 [env.staging]
 name = "majibattle-staging"
-# Note: Using traditional Workers Secrets temporarily due to CI/CD permission issues
-# TODO: Switch back to Secrets Store once API token has "Secrets Store Deployer" role
-# secrets_store_secrets = [
-#   { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
-# ]
+# Cloudflare Secrets Store configuration
+secrets_store_secrets = [
+  { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
+]
 vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17" }
 
 [[env.staging.durable_objects.bindings]]
@@ -28,11 +27,10 @@ new_sqlite_classes = [ "GameSessionV2" ]
 # Production environment
 [env.production]
 name = "majibattle"
-# Note: Using traditional Workers Secrets temporarily due to CI/CD permission issues
-# TODO: Switch back to Secrets Store once API token has "Secrets Store Deployer" role
-# secrets_store_secrets = [
-#   { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
-# ]
+# Cloudflare Secrets Store configuration
+secrets_store_secrets = [
+  { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
+]
 vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17" }
 
 [[env.production.durable_objects.bindings]]
