@@ -6,7 +6,7 @@ export { GameSession } from './durable-objects/GameSession';
 export { GameSessionV2 } from './durable-objects/GameSessionV2';
 export { GameSessionV3 } from './durable-objects/GameSessionV3';
 
-import { SpellGenerationService } from './services/SpellGenerationService';
+import { UnifiedSpellGenerationService } from './services/UnifiedSpellGenerationService';
 
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 
@@ -1139,7 +1139,7 @@ async function generateSpell(
     }
 
     // Initialize spell generation service
-    const spellService = new SpellGenerationService(env.GEMINI_API_KEY, env.GEMINI_MODEL);
+    const spellService = new UnifiedSpellGenerationService(env.GEMINI_API_KEY, env.GEMINI_MODEL);
 
     // Generate spell
     const spellResult = await spellService.generateSpell(selectedKanji);
