@@ -106,11 +106,10 @@ export class UnifiedSpellGenerationService {
   private async callGeminiAPI(prompt: string): Promise<GeminiResponse> {
     const config = globalConfig.getConfig();
 
-    // 🔍 検査用: API Key の状態を確認
+    // 🔍 検査用: API Key の状態を確認（セキュリティのため詳細は出力しない）
     console.log('🔍 API Key check:');
     console.log('- API Key exists:', !!this.apiKey);
     console.log('- API Key length:', this.apiKey?.length || 0);
-    console.log('- API Key first 10 chars:', this.apiKey?.substring(0, 10) || 'undefined');
     console.log('- API Endpoint:', this.apiEndpoint);
 
     const response = await fetch(`${this.apiEndpoint}?key=${this.apiKey}`, {
