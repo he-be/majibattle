@@ -10,6 +10,13 @@ local_protocol = "http"
 # Staging environment for PR previews
 [env.staging]
 name = "majibattle-staging"
+secrets_store_secrets = [
+  { 
+    binding = "GEMINI_API_KEY", 
+    store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", 
+    secret_name = "GEMINI_API_KEY" 
+  }
+]
 
 [[env.staging.durable_objects.bindings]]
 name = "GAME_SESSION"
@@ -19,14 +26,16 @@ class_name = "GameSessionV2"
 tag = "v2"
 new_sqlite_classes = [ "GameSessionV2" ]
 
-# Secret Store binding for staging
-[[env.staging.secrets]]
-binding = "GEMINI_API_KEY"
-store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa"
-
 # Production environment
 [env.production]
 name = "majibattle"
+secrets_store_secrets = [
+  { 
+    binding = "GEMINI_API_KEY", 
+    store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", 
+    secret_name = "GEMINI_API_KEY" 
+  }
+]
 
 [[env.production.durable_objects.bindings]]
 name = "GAME_SESSION"
@@ -35,11 +44,6 @@ class_name = "GameSessionV3"
 [[env.production.migrations]]
 tag = "v3"
 new_sqlite_classes = [ "GameSessionV3" ]
-
-# Secret Store binding for production
-[[env.production.secrets]]
-binding = "GEMINI_API_KEY"
-store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa"
 
 # Build settings
 [build]
@@ -60,10 +64,5 @@ new_sqlite_classes = [ "GameSession" ]
 # Environment variables
 [vars]
 GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
-
-# Secret Store bindings
-[[secrets]]
-binding = "GEMINI_API_KEY"
-store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa"
 
 # For local development: create .dev.vars file with GEMINI_API_KEY=your-key
