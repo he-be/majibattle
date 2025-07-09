@@ -102,22 +102,12 @@ export class ConfigManager {
   }
 
   /**
-   * 環境変数から設定を読み込み
+   * 環境変数から設定を読み込み（Cloudflare Workers対応）
    */
   loadFromEnvironment(): void {
-    // 環境変数 SPELL_PROMPT_STYLE があれば使用
-    const envPromptStyle = process.env.SPELL_PROMPT_STYLE;
-    if (envPromptStyle && Object.values(PROMPT_STYLES).includes(envPromptStyle as PromptStyle)) {
-      this.setPromptStyle(envPromptStyle as PromptStyle);
-    }
-
-    // その他の環境変数も必要に応じて読み込み
-    if (process.env.SPELL_TEMPERATURE) {
-      const temp = parseFloat(process.env.SPELL_TEMPERATURE);
-      if (!isNaN(temp)) {
-        this.updateApiSettings({ temperature: temp });
-      }
-    }
+    // Cloudflare Workers環境では process.env は利用できない
+    // 必要に応じて env パラメータから設定を読み込む仕組みに変更可能
+    // 現在はデフォルト設定を使用
   }
 }
 
