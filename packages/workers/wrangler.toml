@@ -51,5 +51,9 @@ new_sqlite_classes = [ "GameSession" ]
 [vars]
 GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
 
-# Secret bindings (use wrangler secret put GEMINI_API_KEY)
+# Secret Store bindings
+[[secrets]]
+binding = "GEMINI_API_KEY"
+store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa"
+
 # For local development: create .dev.vars file with GEMINI_API_KEY=your-key

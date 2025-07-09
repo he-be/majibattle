@@ -863,7 +863,7 @@ function generateGameHTML(): string {
 interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
-  GEMINI_API_KEY: string;
+  GEMINI_API_KEY: { get(): Promise<string> }; // Secret Store binding
   GEMINI_MODEL: string;
 }
 
@@ -1150,7 +1150,8 @@ async function generateSpell(
     }
 
     // Initialize spell generation service
-    const spellService = new UnifiedSpellGenerationService(env.GEMINI_API_KEY, env.GEMINI_MODEL);
+    const geminiApiKey = await env.GEMINI_API_KEY.get();
+    const spellService = new UnifiedSpellGenerationService(geminiApiKey, env.GEMINI_MODEL);
 
     // Generate spell
     const rawSpellResult = await spellService.generateSpell(selectedKanji);
