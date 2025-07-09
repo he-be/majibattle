@@ -19,6 +19,11 @@ class_name = "GameSessionV2"
 tag = "v2"
 new_sqlite_classes = [ "GameSessionV2" ]
 
+# Secret Store binding for staging
+[[env.staging.secrets]]
+binding = "GEMINI_API_KEY"
+store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa"
+
 # Production environment
 [env.production]
 name = "majibattle"
@@ -30,6 +35,11 @@ class_name = "GameSessionV3"
 [[env.production.migrations]]
 tag = "v3"
 new_sqlite_classes = [ "GameSessionV3" ]
+
+# Secret Store binding for production
+[[env.production.secrets]]
+binding = "GEMINI_API_KEY"
+store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa"
 
 # Build settings
 [build]
