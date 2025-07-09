@@ -956,6 +956,8 @@ async function createNewGameSession(
   const response = await durableObject.fetch(
     new Request('https://fake-host/create', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
     })
   );
 
@@ -1095,7 +1097,10 @@ async function generateSpell(
       });
     }
 
-    const sessionData = (await stateResponse.json()) as { success: boolean; data?: { selectedKanji?: string[] } };
+    const sessionData = (await stateResponse.json()) as {
+      success: boolean;
+      data?: { selectedKanji?: string[] };
+    };
 
     if (!sessionData.success || !sessionData.data) {
       return new Response(JSON.stringify({ error: 'Invalid session state' }), {

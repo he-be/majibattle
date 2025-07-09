@@ -43,21 +43,21 @@ export class GameSession {
           error: 'Durable Object initialization failed',
           details: this.initError.message,
           stack: this.initError.stack,
-          sqlAvailable: typeof this.state.storage.sql
+          sqlAvailable: typeof this.state.storage.sql,
         }),
-        { 
+        {
           status: 500,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         }
       );
     }
 
     try {
-
       switch (method) {
         case 'POST':
           if (url.pathname.endsWith('/create')) {
-            return await this.createSession();
+            const body = (await request.json()) as { sessionId?: string };
+            return await this.createSession(body.sessionId);
           }
           if (url.pathname.endsWith('/select')) {
             const body = (await request.json()) as { kanji: string };
@@ -90,7 +90,7 @@ export class GameSession {
     console.log('initializeDatabase: state.storage available:', !!this.state.storage);
     console.log('initializeDatabase: state.storage.sql available:', !!this.state.storage.sql);
     console.log('initializeDatabase: SQL exec type:', typeof this.state.storage.sql?.exec);
-    
+
     try {
       await this.state.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS game_sessions (
@@ -110,8 +110,8 @@ export class GameSession {
     }
   }
 
-  private async createSession(): Promise<Response> {
-    const sessionId = generateSessionId();
+  private async createSession(providedSessionId?: string): Promise<Response> {
+    const sessionId = providedSessionId || generateSessionId();
     const now = Date.now();
 
     // Generate initial 20 random kanji using KanjiDataManager
