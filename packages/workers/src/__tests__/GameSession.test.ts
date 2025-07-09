@@ -31,7 +31,11 @@ describe('GameSession Durable Object', () => {
     test('should initialize database table on first access', async () => {
       mockSqlStorage.exec.mockResolvedValueOnce({ toArray: () => [] });
 
-      const request = new Request('http://localhost/create', { method: 'POST' });
+      const request = new Request('http://localhost/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
       await gameSession.fetch(request);
 
       expect(mockSqlStorage.exec).toHaveBeenCalledWith(
@@ -46,7 +50,11 @@ describe('GameSession Durable Object', () => {
         .mockResolvedValueOnce({ toArray: () => [] }) // CREATE TABLE
         .mockResolvedValueOnce({ toArray: () => [] }); // INSERT
 
-      const request = new Request('http://localhost/create', { method: 'POST' });
+      const request = new Request('http://localhost/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
       const response = await gameSession.fetch(request);
 
       expect(response.status).toBe(200);
@@ -143,6 +151,7 @@ describe('GameSession Durable Object', () => {
 
       const request = new Request('http://localhost/select', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kanji: '火' }),
       });
       const response = await gameSession.fetch(request);
@@ -161,6 +170,7 @@ describe('GameSession Durable Object', () => {
 
       const request = new Request('http://localhost/select', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kanji: '雷' }),
       });
       const response = await gameSession.fetch(request);
@@ -184,6 +194,7 @@ describe('GameSession Durable Object', () => {
 
       const request = new Request('http://localhost/select', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kanji: '土' }),
       });
       const response = await gameSession.fetch(request);
@@ -212,7 +223,11 @@ describe('GameSession Durable Object', () => {
         .mockResolvedValueOnce({ toArray: () => [mockSessionData] }) // SELECT
         .mockResolvedValueOnce({ toArray: () => [] }); // UPDATE
 
-      const request = new Request('http://localhost/reset', { method: 'POST' });
+      const request = new Request('http://localhost/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
       const response = await gameSession.fetch(request);
 
       expect(response.status).toBe(200);
@@ -229,7 +244,11 @@ describe('GameSession Durable Object', () => {
     test('should handle database errors gracefully', async () => {
       mockSqlStorage.exec.mockRejectedValueOnce(new Error('Database error'));
 
-      const request = new Request('http://localhost/create', { method: 'POST' });
+      const request = new Request('http://localhost/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
       const response = await gameSession.fetch(request);
 
       expect(response.status).toBe(500);

@@ -60,7 +60,8 @@ export class GameSessionV3 {
       switch (method) {
         case 'POST':
           if (url.pathname.endsWith('/create')) {
-            return await this.createSession();
+            const body = (await request.json()) as { sessionId?: string };
+            return await this.createSession(body.sessionId);
           }
           if (url.pathname.endsWith('/select')) {
             const body = (await request.json()) as { kanji: string };
@@ -113,8 +114,8 @@ export class GameSessionV3 {
     }
   }
 
-  private async createSession(): Promise<Response> {
-    const sessionId = generateSessionId();
+  private async createSession(providedSessionId?: string): Promise<Response> {
+    const sessionId = providedSessionId || generateSessionId();
     const now = Date.now();
 
     // Generate initial 20 random kanji using KanjiDataManager
