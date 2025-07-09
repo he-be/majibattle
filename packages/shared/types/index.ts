@@ -7,16 +7,30 @@ export interface GameSessionState {
   lastUpdatedAt: Date;
 }
 
-// 従来の呪文結果（魔法系）
+// 拡張された統一呪文結果（全スタイル対応）
 export interface SpellResult {
   spell: string;
   description: string;
   effects: string[];
   power: number;
   element: string;
-  rarity: 'useless' | 'common' | 'rare' | 'epic' | 'legendary';
+  rarity:
+    | 'useless'
+    | 'common'
+    | 'rare'
+    | 'epic'
+    | 'legendary'
+    | 'Common'
+    | 'Uncommon'
+    | 'Rare'
+    | 'Epic'
+    | 'Legendary';
   createdAt: Date;
   kanjiUsed: string[]; // 使用した漢字の記録
+
+  // 民俗学スタイル用の拡張フィールド（オプショナル）
+  kana?: string; // カタカナ読み
+  origin?: string; // 由来・伝承
 }
 
 // 新しい民俗学スタイルの呪文結果

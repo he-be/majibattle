@@ -7,6 +7,7 @@ export { GameSessionV2 } from './durable-objects/GameSessionV2';
 export { GameSessionV3 } from './durable-objects/GameSessionV3';
 
 import { UnifiedSpellGenerationService } from './services/UnifiedSpellGenerationService';
+import { SpellResultAdapter } from './adapters/SpellResultAdapter';
 
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 
@@ -779,14 +780,17 @@ function generateGameHTML(): string {
             }
             
             displaySpellResult(spellResult) {
-                // 呪文結果を表示
+                // 呪文結果を表示（拡張SpellResult対応）
                 const spellModal = document.createElement('div');
                 spellModal.className = 'spell-modal';
+                
                 spellModal.innerHTML = \`
                     <div class="spell-result \${spellResult.rarity}">
                         <h2 class="spell-name">\${spellResult.spell}</h2>
+                        \${spellResult.kana ? \`<div class="spell-kana" style="text-align: center; font-size: 0.9em; color: #666; margin-bottom: 10px;">\${spellResult.kana}</div>\` : ''}
                         <div class="spell-rarity">\${this.getRarityText(spellResult.rarity)}</div>
                         <p class="spell-description">\${spellResult.description}</p>
+                        \${spellResult.origin ? \`<div class="spell-origin" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em; color: #555;"><strong>由来:</strong> \${spellResult.origin}</div>\` : ''}
                         <div class="spell-details">
                             <div class="spell-stat">
                                 <span class="label">属性:</span>
@@ -818,11 +822,18 @@ function generateGameHTML(): string {
             
             getRarityText(rarity) {
                 const rarityTexts = {
+                    // 従来スタイル
                     useless: 'ゴミ',
                     common: 'コモン',
                     rare: 'レア',
                     epic: 'エピック',
-                    legendary: 'レジェンダリー'
+                    legendary: 'レジェンダリー',
+                    // 民俗学スタイル
+                    Common: 'コモン',
+                    Uncommon: 'アンコモン',
+                    Rare: 'レア',
+                    Epic: 'エピック',
+                    Legendary: 'レジェンダリー'
                 };
                 return rarityTexts[rarity] || rarity;
             }
@@ -1142,7 +1153,10 @@ async function generateSpell(
     const spellService = new UnifiedSpellGenerationService(env.GEMINI_API_KEY, env.GEMINI_MODEL);
 
     // Generate spell
-    const spellResult = await spellService.generateSpell(selectedKanji);
+    const rawSpellResult = await spellService.generateSpell(selectedKanji);
+
+    // 結果を統一形式に変換
+    const spellResult = SpellResultAdapter.toUnifiedFormat(rawSpellResult);
 
     // TODO: Store spell in session history (implement in next task)
 
