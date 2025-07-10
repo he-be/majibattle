@@ -1155,22 +1155,24 @@ async function generateSpell(
     let geminiApiKey: string = '';
 
     // 公式ドキュメントのパターンに従う
-    if (env.GEMINI_API_KEY) {
-      if (typeof env.GEMINI_API_KEY !== 'string') {
-        // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
-        console.log('Accessing secret from Cloudflare Secrets Store...');
-        try {
-          geminiApiKey = await env.GEMINI_API_KEY.get();
-          console.log('Successfully retrieved secret from Secrets Store');
-        } catch (e) {
-          console.error('Failed to get secret from Secrets Store:', e);
-          throw new Error(`Secrets Store error: ${e}`);
-        }
-      } else {
-        // ローカル開発環境：.dev.varsからのプレーンな文字列
-        console.log('Accessing secret from local .dev.vars file...');
-        geminiApiKey = env.GEMINI_API_KEY;
+    if (
+      typeof env.GEMINI_API_KEY === 'object' &&
+      env.GEMINI_API_KEY !== null &&
+      'get' in env.GEMINI_API_KEY
+    ) {
+      // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
+      console.log('Accessing secret from Cloudflare Secrets Store...');
+      try {
+        geminiApiKey = await env.GEMINI_API_KEY.get();
+        console.log('Successfully retrieved secret from Secrets Store');
+      } catch (e) {
+        console.error('Failed to get secret from Secrets Store:', e);
+        throw new Error(`Secrets Store error: ${e}`);
       }
+    } else if (typeof env.GEMINI_API_KEY === 'string') {
+      // ローカル開発環境：.dev.varsからのプレーンな文字列
+      console.log('Accessing secret from local .dev.vars file...');
+      geminiApiKey = env.GEMINI_API_KEY;
     } else {
       // E2Eテスト環境など、APIキーが利用できない場合
       console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
