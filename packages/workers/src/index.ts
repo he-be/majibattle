@@ -1154,6 +1154,15 @@ async function generateSpell(
     // Initialize spell generation service
     let geminiApiKey: string = '';
 
+    // デバッグ用の詳細なログ出力
+    console.log('GEMINI_API_KEY type:', typeof env.GEMINI_API_KEY);
+    console.log('GEMINI_API_KEY value:', env.GEMINI_API_KEY);
+    console.log('GEMINI_API_KEY constructor:', env.GEMINI_API_KEY?.constructor?.name);
+    console.log(
+      'GEMINI_API_KEY properties:',
+      env.GEMINI_API_KEY ? Object.getOwnPropertyNames(env.GEMINI_API_KEY) : 'null/undefined'
+    );
+
     // 公式ドキュメントのパターンに従う
     if (
       typeof env.GEMINI_API_KEY === 'object' &&
@@ -1162,6 +1171,7 @@ async function generateSpell(
     ) {
       // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
       console.log('Accessing secret from Cloudflare Secrets Store...');
+      console.log('get method type:', typeof env.GEMINI_API_KEY.get);
       try {
         geminiApiKey = await env.GEMINI_API_KEY.get();
         console.log('Successfully retrieved secret from Secrets Store');
