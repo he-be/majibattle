@@ -1156,13 +1156,39 @@ async function generateSpell(
     let geminiApiKey: string = '';
 
     // デバッグ用の詳細なログ出力
+    console.log('=== GEMINI_SECRET 詳細調査 ===');
     console.log('GEMINI_SECRET type:', typeof env.GEMINI_SECRET);
     console.log('GEMINI_SECRET value:', env.GEMINI_SECRET);
     console.log('GEMINI_SECRET constructor:', env.GEMINI_SECRET?.constructor?.name);
+    console.log('GEMINI_SECRET toString:', env.GEMINI_SECRET?.toString());
     console.log(
       'GEMINI_SECRET properties:',
       env.GEMINI_SECRET ? Object.getOwnPropertyNames(env.GEMINI_SECRET) : 'null/undefined'
     );
+    console.log(
+      'GEMINI_SECRET prototype:',
+      env.GEMINI_SECRET ? Object.getPrototypeOf(env.GEMINI_SECRET) : 'null/undefined'
+    );
+    console.log('GEMINI_SECRET has get method:', 'get' in (env.GEMINI_SECRET || {}));
+
+    // envオブジェクト全体の確認
+    console.log('=== ENV オブジェクト全体 ===');
+    console.log('env keys:', Object.keys(env));
+    console.log(
+      'env GEMINI_* properties:',
+      Object.keys(env).filter((k) => k.includes('GEMINI'))
+    );
+
+    // バインディング設定の確認
+    console.log('=== バインディング設定確認 ===');
+    const allBindings = Object.entries(env).map(([key, value]) => ({
+      key,
+      type: typeof value,
+      constructor: value?.constructor?.name,
+      isObject: typeof value === 'object' && value !== null,
+      hasGet: typeof value === 'object' && value !== null && 'get' in value,
+    }));
+    console.log('All bindings:', JSON.stringify(allBindings, null, 2));
 
     // 公式ドキュメントのパターンに従う
     if (
