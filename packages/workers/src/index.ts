@@ -1208,27 +1208,30 @@ async function generateSpell(
           geminiApiKey = await env.GEMINI_SECRET.get();
           console.log('方法1成功: 引数なしget()');
         } catch (e1) {
-          console.log('方法1失敗:', e1.message);
+          console.log('方法1失敗:', e1 instanceof Error ? e1.message : String(e1));
 
           // 方法2: secret_name を引数として渡す
           try {
             console.log('試行2: await env.GEMINI_SECRET.get("GEMINI_API_KEY")');
+            // @ts-expect-error - Testing different API patterns
             geminiApiKey = await env.GEMINI_SECRET.get('GEMINI_API_KEY');
             console.log('方法2成功: secret_name引数あり');
           } catch (e2) {
-            console.log('方法2失敗:', e2.message);
+            console.log('方法2失敗:', e2 instanceof Error ? e2.message : String(e2));
 
             // 方法3: fetch API経由
             try {
               console.log('試行3: env.GEMINI_SECRET.fetch()');
+              // @ts-expect-error - Testing Service Binding pattern
               const response = await env.GEMINI_SECRET.fetch('/');
               geminiApiKey = await response.text();
               console.log('方法3成功: fetch API');
             } catch (e3) {
-              console.log('方法3失敗:', e3.message);
-              throw new Error(
-                `All Secrets Store methods failed: ${e1.message}, ${e2.message}, ${e3.message}`
-              );
+              console.log('方法3失敗:', e3 instanceof Error ? e3.message : String(e3));
+              const e1Msg = e1 instanceof Error ? e1.message : String(e1);
+              const e2Msg = e2 instanceof Error ? e2.message : String(e2);
+              const e3Msg = e3 instanceof Error ? e3.message : String(e3);
+              throw new Error(`All Secrets Store methods failed: ${e1Msg}, ${e2Msg}, ${e3Msg}`);
             }
           }
         }
