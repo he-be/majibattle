@@ -863,10 +863,8 @@ function generateGameHTML(): string {
 interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
-  // 本番環境ではSecrets Storeのバインディングオブジェクト
-  GEMINI_SECRET: { get(): Promise<string> };
-  // ローカル開発では.dev.varsからの文字列
-  GEMINI_API_KEY?: string;
+  // Workers Secrets（本番）または.dev.vars（ローカル開発）
+  GEMINI_API_KEY: string;
   GEMINI_MODEL: string;
 }
 
@@ -1155,98 +1153,10 @@ async function generateSpell(
     // Initialize spell generation service
     let geminiApiKey: string = '';
 
-    // デバッグ用の詳細なログ出力
-    console.log('=== GEMINI_SECRET 詳細調査 ===');
-    console.log('GEMINI_SECRET type:', typeof env.GEMINI_SECRET);
-    console.log('GEMINI_SECRET value:', env.GEMINI_SECRET);
-    console.log('GEMINI_SECRET constructor:', env.GEMINI_SECRET?.constructor?.name);
-    console.log('GEMINI_SECRET toString:', env.GEMINI_SECRET?.toString());
-    console.log(
-      'GEMINI_SECRET properties:',
-      env.GEMINI_SECRET ? Object.getOwnPropertyNames(env.GEMINI_SECRET) : 'null/undefined'
-    );
-    console.log(
-      'GEMINI_SECRET prototype:',
-      env.GEMINI_SECRET ? Object.getPrototypeOf(env.GEMINI_SECRET) : 'null/undefined'
-    );
-    console.log('GEMINI_SECRET has get method:', 'get' in (env.GEMINI_SECRET || {}));
-
-    // envオブジェクト全体の確認
-    console.log('=== ENV オブジェクト全体 ===');
-    console.log('env keys:', Object.keys(env));
-    console.log(
-      'env GEMINI_* properties:',
-      Object.keys(env).filter((k) => k.includes('GEMINI'))
-    );
-
-    // バインディング設定の確認
-    console.log('=== バインディング設定確認 ===');
-    const allBindings = Object.entries(env).map(([key, value]) => ({
-      key,
-      type: typeof value,
-      constructor: value?.constructor?.name,
-      isObject: typeof value === 'object' && value !== null,
-      hasGet: typeof value === 'object' && value !== null && 'get' in value,
-    }));
-    console.log('All bindings:', JSON.stringify(allBindings, null, 2));
-
-    // 公式ドキュメントのパターンに従う
-    if (
-      typeof env.GEMINI_SECRET === 'object' &&
-      env.GEMINI_SECRET !== null &&
-      'get' in env.GEMINI_SECRET
-    ) {
-      // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
-      console.log('Accessing secret from Cloudflare Secrets Store...');
-      console.log('get method type:', typeof env.GEMINI_SECRET.get);
-      try {
-        console.log('=== Secrets Store API試行 ===');
-
-        // 方法1: 引数なし（公式ドキュメント）
-        try {
-          console.log('試行1: await env.GEMINI_SECRET.get()');
-          geminiApiKey = await env.GEMINI_SECRET.get();
-          console.log('方法1成功: 引数なしget()');
-        } catch (e1) {
-          console.log('方法1失敗:', e1 instanceof Error ? e1.message : String(e1));
-
-          // 方法2: secret_name を引数として渡す
-          try {
-            console.log('試行2: await env.GEMINI_SECRET.get("GEMINI_API_KEY")');
-            // @ts-expect-error - Testing different API patterns
-            geminiApiKey = await env.GEMINI_SECRET.get('GEMINI_API_KEY');
-            console.log('方法2成功: secret_name引数あり');
-          } catch (e2) {
-            console.log('方法2失敗:', e2 instanceof Error ? e2.message : String(e2));
-
-            // 方法3: fetch API経由
-            try {
-              console.log('試行3: env.GEMINI_SECRET.fetch()');
-              // @ts-expect-error - Testing Service Binding pattern
-              const response = await env.GEMINI_SECRET.fetch('/');
-              geminiApiKey = await response.text();
-              console.log('方法3成功: fetch API');
-            } catch (e3) {
-              console.log('方法3失敗:', e3 instanceof Error ? e3.message : String(e3));
-              const e1Msg = e1 instanceof Error ? e1.message : String(e1);
-              const e2Msg = e2 instanceof Error ? e2.message : String(e2);
-              const e3Msg = e3 instanceof Error ? e3.message : String(e3);
-              throw new Error(`All Secrets Store methods failed: ${e1Msg}, ${e2Msg}, ${e3Msg}`);
-            }
-          }
-        }
-
-        console.log('Successfully retrieved secret from Secrets Store');
-      } catch (e) {
-        console.error('Failed to get secret from Secrets Store:', e);
-        throw new Error(`Secrets Store error: ${e}`);
-      }
-    } else if (typeof env.GEMINI_API_KEY === 'string') {
-      // ローカル開発環境：.dev.varsからのプレーンな文字列
-      console.log('Accessing secret from local .dev.vars file...');
+    if (env.GEMINI_API_KEY) {
+      console.log('Using GEMINI_API_KEY from environment');
       geminiApiKey = env.GEMINI_API_KEY;
     } else {
-      // E2Eテスト環境など、APIキーが利用できない場合
       console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
     }
 
