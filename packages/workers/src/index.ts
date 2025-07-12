@@ -1200,7 +1200,39 @@ async function generateSpell(
       console.log('Accessing secret from Cloudflare Secrets Store...');
       console.log('get method type:', typeof env.GEMINI_SECRET.get);
       try {
-        geminiApiKey = await env.GEMINI_SECRET.get();
+        console.log('=== Secrets Store API試行 ===');
+
+        // 方法1: 引数なし（公式ドキュメント）
+        try {
+          console.log('試行1: await env.GEMINI_SECRET.get()');
+          geminiApiKey = await env.GEMINI_SECRET.get();
+          console.log('方法1成功: 引数なしget()');
+        } catch (e1) {
+          console.log('方法1失敗:', e1.message);
+
+          // 方法2: secret_name を引数として渡す
+          try {
+            console.log('試行2: await env.GEMINI_SECRET.get("GEMINI_API_KEY")');
+            geminiApiKey = await env.GEMINI_SECRET.get('GEMINI_API_KEY');
+            console.log('方法2成功: secret_name引数あり');
+          } catch (e2) {
+            console.log('方法2失敗:', e2.message);
+
+            // 方法3: fetch API経由
+            try {
+              console.log('試行3: env.GEMINI_SECRET.fetch()');
+              const response = await env.GEMINI_SECRET.fetch('/');
+              geminiApiKey = await response.text();
+              console.log('方法3成功: fetch API');
+            } catch (e3) {
+              console.log('方法3失敗:', e3.message);
+              throw new Error(
+                `All Secrets Store methods failed: ${e1.message}, ${e2.message}, ${e3.message}`
+              );
+            }
+          }
+        }
+
         console.log('Successfully retrieved secret from Secrets Store');
       } catch (e) {
         console.error('Failed to get secret from Secrets Store:', e);
