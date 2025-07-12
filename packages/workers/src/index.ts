@@ -864,8 +864,9 @@ interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
   // 本番環境ではSecrets Storeのバインディングオブジェクト
+  GEMINI_SECRET: { get(): Promise<string> };
   // ローカル開発では.dev.varsからの文字列
-  GEMINI_API_KEY: { get(): Promise<string> } | string;
+  GEMINI_API_KEY?: string;
   GEMINI_MODEL: string;
 }
 
@@ -1155,25 +1156,25 @@ async function generateSpell(
     let geminiApiKey: string = '';
 
     // デバッグ用の詳細なログ出力
-    console.log('GEMINI_API_KEY type:', typeof env.GEMINI_API_KEY);
-    console.log('GEMINI_API_KEY value:', env.GEMINI_API_KEY);
-    console.log('GEMINI_API_KEY constructor:', env.GEMINI_API_KEY?.constructor?.name);
+    console.log('GEMINI_SECRET type:', typeof env.GEMINI_SECRET);
+    console.log('GEMINI_SECRET value:', env.GEMINI_SECRET);
+    console.log('GEMINI_SECRET constructor:', env.GEMINI_SECRET?.constructor?.name);
     console.log(
-      'GEMINI_API_KEY properties:',
-      env.GEMINI_API_KEY ? Object.getOwnPropertyNames(env.GEMINI_API_KEY) : 'null/undefined'
+      'GEMINI_SECRET properties:',
+      env.GEMINI_SECRET ? Object.getOwnPropertyNames(env.GEMINI_SECRET) : 'null/undefined'
     );
 
     // 公式ドキュメントのパターンに従う
     if (
-      typeof env.GEMINI_API_KEY === 'object' &&
-      env.GEMINI_API_KEY !== null &&
-      'get' in env.GEMINI_API_KEY
+      typeof env.GEMINI_SECRET === 'object' &&
+      env.GEMINI_SECRET !== null &&
+      'get' in env.GEMINI_SECRET
     ) {
       // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
       console.log('Accessing secret from Cloudflare Secrets Store...');
-      console.log('get method type:', typeof env.GEMINI_API_KEY.get);
+      console.log('get method type:', typeof env.GEMINI_SECRET.get);
       try {
-        geminiApiKey = await env.GEMINI_API_KEY.get();
+        geminiApiKey = await env.GEMINI_SECRET.get();
         console.log('Successfully retrieved secret from Secrets Store');
       } catch (e) {
         console.error('Failed to get secret from Secrets Store:', e);

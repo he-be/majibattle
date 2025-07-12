@@ -10,11 +10,11 @@ local_protocol = "http"
 # Staging environment for PR previews
 [env.staging]
 name = "majibattle-staging"
+vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17" }
 # Cloudflare Secrets Store configuration
 secrets_store_secrets = [
-  { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
+  { binding = "GEMINI_SECRET", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
 ]
-vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17" }
 
 [[env.staging.durable_objects.bindings]]
 name = "GAME_SESSION"
@@ -29,7 +29,7 @@ new_sqlite_classes = [ "GameSessionV2" ]
 name = "majibattle"
 # Cloudflare Secrets Store configuration
 secrets_store_secrets = [
-  { binding = "GEMINI_API_KEY", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
+  { binding = "GEMINI_SECRET", store_id = "b8ffbf7dcbf34210b9bf420d54c0fdaa", secret_name = "GEMINI_API_KEY" }
 ]
 vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17" }
 
