@@ -6,7 +6,8 @@ export { GameSession } from './durable-objects/GameSession';
 export { GameSessionV2 } from './durable-objects/GameSessionV2';
 export { GameSessionV3 } from './durable-objects/GameSessionV3';
 
-import { SpellGenerationService } from './services/SpellGenerationService';
+import { UnifiedSpellGenerationService } from './services/UnifiedSpellGenerationService';
+import { SpellResultAdapter } from './adapters/SpellResultAdapter';
 
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 
@@ -779,14 +780,17 @@ function generateGameHTML(): string {
             }
             
             displaySpellResult(spellResult) {
-                // 呪文結果を表示
+                // 呪文結果を表示（拡張SpellResult対応）
                 const spellModal = document.createElement('div');
                 spellModal.className = 'spell-modal';
+                
                 spellModal.innerHTML = \`
                     <div class="spell-result \${spellResult.rarity}">
                         <h2 class="spell-name">\${spellResult.spell}</h2>
+                        \${spellResult.kana ? \`<div class="spell-kana" style="text-align: center; font-size: 0.9em; color: #666; margin-bottom: 10px;">\${spellResult.kana}</div>\` : ''}
                         <div class="spell-rarity">\${this.getRarityText(spellResult.rarity)}</div>
                         <p class="spell-description">\${spellResult.description}</p>
+                        \${spellResult.origin ? \`<div class="spell-origin" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em; color: #555;"><strong>由来:</strong> \${spellResult.origin}</div>\` : ''}
                         <div class="spell-details">
                             <div class="spell-stat">
                                 <span class="label">属性:</span>
@@ -818,11 +822,18 @@ function generateGameHTML(): string {
             
             getRarityText(rarity) {
                 const rarityTexts = {
+                    // 従来スタイル
                     useless: 'ゴミ',
                     common: 'コモン',
                     rare: 'レア',
                     epic: 'エピック',
-                    legendary: 'レジェンダリー'
+                    legendary: 'レジェンダリー',
+                    // 民俗学スタイル
+                    Common: 'コモン',
+                    Uncommon: 'アンコモン',
+                    Rare: 'レア',
+                    Epic: 'エピック',
+                    Legendary: 'レジェンダリー'
                 };
                 return rarityTexts[rarity] || rarity;
             }
@@ -852,7 +863,10 @@ function generateGameHTML(): string {
 interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
-  GEMINI_API_KEY: string;
+  // 本番環境ではSecrets Storeのバインディングオブジェクト
+  GEMINI_SECRET: { get(): Promise<string> };
+  // ローカル開発では.dev.varsからの文字列
+  GEMINI_API_KEY?: string;
   GEMINI_MODEL: string;
 }
 
@@ -1139,10 +1153,75 @@ async function generateSpell(
     }
 
     // Initialize spell generation service
-    const spellService = new SpellGenerationService(env.GEMINI_API_KEY, env.GEMINI_MODEL);
+    let geminiApiKey: string = '';
+
+    // デバッグ用の詳細なログ出力
+    console.log('=== GEMINI_SECRET 詳細調査 ===');
+    console.log('GEMINI_SECRET type:', typeof env.GEMINI_SECRET);
+    console.log('GEMINI_SECRET value:', env.GEMINI_SECRET);
+    console.log('GEMINI_SECRET constructor:', env.GEMINI_SECRET?.constructor?.name);
+    console.log('GEMINI_SECRET toString:', env.GEMINI_SECRET?.toString());
+    console.log(
+      'GEMINI_SECRET properties:',
+      env.GEMINI_SECRET ? Object.getOwnPropertyNames(env.GEMINI_SECRET) : 'null/undefined'
+    );
+    console.log(
+      'GEMINI_SECRET prototype:',
+      env.GEMINI_SECRET ? Object.getPrototypeOf(env.GEMINI_SECRET) : 'null/undefined'
+    );
+    console.log('GEMINI_SECRET has get method:', 'get' in (env.GEMINI_SECRET || {}));
+
+    // envオブジェクト全体の確認
+    console.log('=== ENV オブジェクト全体 ===');
+    console.log('env keys:', Object.keys(env));
+    console.log(
+      'env GEMINI_* properties:',
+      Object.keys(env).filter((k) => k.includes('GEMINI'))
+    );
+
+    // バインディング設定の確認
+    console.log('=== バインディング設定確認 ===');
+    const allBindings = Object.entries(env).map(([key, value]) => ({
+      key,
+      type: typeof value,
+      constructor: value?.constructor?.name,
+      isObject: typeof value === 'object' && value !== null,
+      hasGet: typeof value === 'object' && value !== null && 'get' in value,
+    }));
+    console.log('All bindings:', JSON.stringify(allBindings, null, 2));
+
+    // 公式ドキュメントのパターンに従う
+    if (
+      typeof env.GEMINI_SECRET === 'object' &&
+      env.GEMINI_SECRET !== null &&
+      'get' in env.GEMINI_SECRET
+    ) {
+      // 本番/ステージング環境：Secrets Storeのバインディングオブジェクト
+      console.log('Accessing secret from Cloudflare Secrets Store...');
+      console.log('get method type:', typeof env.GEMINI_SECRET.get);
+      try {
+        geminiApiKey = await env.GEMINI_SECRET.get();
+        console.log('Successfully retrieved secret from Secrets Store');
+      } catch (e) {
+        console.error('Failed to get secret from Secrets Store:', e);
+        throw new Error(`Secrets Store error: ${e}`);
+      }
+    } else if (typeof env.GEMINI_API_KEY === 'string') {
+      // ローカル開発環境：.dev.varsからのプレーンな文字列
+      console.log('Accessing secret from local .dev.vars file...');
+      geminiApiKey = env.GEMINI_API_KEY;
+    } else {
+      // E2Eテスト環境など、APIキーが利用できない場合
+      console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
+    }
+
+    const spellService = new UnifiedSpellGenerationService(geminiApiKey, env.GEMINI_MODEL);
 
     // Generate spell
-    const spellResult = await spellService.generateSpell(selectedKanji);
+    const rawSpellResult = await spellService.generateSpell(selectedKanji);
+
+    // 結果を統一形式に変換
+    const spellResult = SpellResultAdapter.toUnifiedFormat(rawSpellResult);
 
     // TODO: Store spell in session history (implement in next task)
 
