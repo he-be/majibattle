@@ -6,8 +6,7 @@ export { GameSession } from './durable-objects/GameSession';
 export { GameSessionV2 } from './durable-objects/GameSessionV2';
 export { GameSessionV3 } from './durable-objects/GameSessionV3';
 
-import { UnifiedSpellGenerationService } from './services/UnifiedSpellGenerationService';
-import { SpellResultAdapter } from './adapters/SpellResultAdapter';
+import { SpellWithImageGenerationService } from './services/SpellWithImageGenerationService';
 
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 
@@ -395,6 +394,66 @@ function generateGameHTML(): string {
             color: #4b5563;
             margin-bottom: 20px;
             text-align: center;
+        }
+        
+        .spell-image {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            margin: 20px auto;
+            display: block;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .spell-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .image-loading {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        .image-error {
+            text-align: center;
+            padding: 15px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            color: #dc2626;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+        
+        .image-generation-status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        
+        .image-generation-status.generating {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #dbeafe;
+        }
+        
+        .image-generation-status.success {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .image-generation-status.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
         }
         
         .spell-details {
@@ -802,15 +861,44 @@ function generateGameHTML(): string {
             }
             
             displaySpellResult(spellResult) {
-                // 呪文結果を表示（拡張SpellResult対応）
+                // 呪文結果を表示（拡張SpellResult対応 + 画像生成対応）
                 const spellModal = document.createElement('div');
                 spellModal.className = 'spell-modal';
+                
+                // 画像表示エリアのHTML生成
+                let imageSection = '';
+                if (spellResult.imageGenerationEnabled) {
+                    if (spellResult.generatedImage) {
+                        // 画像生成成功
+                        imageSection = \`
+                            <div class="image-generation-status success">
+                                ✅ AI画像生成完了 (生成時間: \${Math.round(spellResult.generatedImage.generationTime / 1000)}秒)
+                            </div>
+                            <img src="\${spellResult.generatedImage.imageUrl}" alt="Generated spell image" class="spell-image">
+                        \`;
+                    } else if (spellResult.imageGenerationError) {
+                        // 画像生成失敗
+                        imageSection = \`
+                            <div class="image-generation-status error">
+                                ❌ AI画像生成に失敗しました: \${spellResult.imageGenerationError}
+                            </div>
+                        \`;
+                    } else {
+                        // 画像生成中
+                        imageSection = \`
+                            <div class="image-generation-status generating">
+                                🎨 AI画像を生成中...
+                            </div>
+                        \`;
+                    }
+                }
                 
                 spellModal.innerHTML = \`
                     <div class="spell-result \${spellResult.rarity}">
                         <h2 class="spell-name">\${spellResult.spell}</h2>
                         \${spellResult.kana ? \`<div class="spell-kana" style="text-align: center; font-size: 0.9em; color: #666; margin-bottom: 10px;">\${spellResult.kana}</div>\` : ''}
                         <div class="spell-rarity">\${this.getRarityText(spellResult.rarity)}</div>
+                        \${imageSection}
                         <p class="spell-description">\${spellResult.description}</p>
                         \${spellResult.origin ? \`<div class="spell-origin" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em; color: #555;"><strong>由来:</strong> \${spellResult.origin}</div>\` : ''}
                         <div class="spell-details">
@@ -902,6 +990,77 @@ function generateGameHTML(): string {
   `;
 }
 
+/**
+ * 工事中画像を配信
+ */
+function serveUnderConstructionImage(): Response {
+  // シンプルな「工事中」SVG画像を埋め込み
+  const svgContent = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" fill="none">
+  <rect width="512" height="768" fill="#f3f4f6"/>
+  
+  <!-- 背景パターン -->
+  <defs>
+    <pattern id="stripes" patternUnits="userSpaceOnUse" width="20" height="20" patternTransform="rotate(45)">
+      <rect width="10" height="20" fill="#fbbf24"/>
+      <rect x="10" width="10" height="20" fill="#f59e0b"/>
+    </pattern>
+  </defs>
+  
+  <!-- フレーム -->
+  <rect x="20" y="20" width="472" height="728" rx="15" fill="white" stroke="#e5e7eb" stroke-width="2"/>
+  
+  <!-- 工事中アイコン -->
+  <g transform="translate(256, 200)">
+    <!-- ヘルメット -->
+    <circle cx="0" cy="0" r="60" fill="#fbbf24"/>
+    <path d="M -50 -10 Q -50 -40, 0 -50 Q 50 -40, 50 -10" fill="#f59e0b"/>
+    <rect x="-60" y="-10" width="120" height="10" rx="5" fill="#f59e0b"/>
+    
+    <!-- 歯車 -->
+    <g transform="translate(0, 150)">
+      <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0 0 0" to="360 0 0" dur="10s" repeatCount="indefinite"/>
+      <path d="M 0,-40 L 10,-38 L 10,-25 L 20,-20 L 28,-28 L 38,-20 L 25,-10 L 38,-10 L 40,0 L 38,10 L 25,10 L 20,20 L 28,28 L 20,38 L 10,25 L 10,38 L 0,40 L -10,38 L -10,25 L -20,20 L -28,28 L -38,20 L -25,10 L -38,10 L -40,0 L -38,-10 L -25,-10 L -20,-20 L -28,-28 L -20,-38 L -10,-25 L -10,-38 Z" fill="#6b7280"/>
+      <circle cx="0" cy="0" r="15" fill="#4b5563"/>
+    </g>
+  </g>
+  
+  <!-- テキスト -->
+  <text x="256" y="420" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="bold" fill="#1f2937">
+    AI画像生成準備中
+  </text>
+  
+  <text x="256" y="460" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#6b7280">
+    Under Construction
+  </text>
+  
+  <!-- メッセージ -->
+  <text x="256" y="520" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#9ca3af">
+    画像生成サービスは現在利用できません
+  </text>
+  
+  <text x="256" y="545" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#9ca3af">
+    しばらくお待ちください
+  </text>
+  
+  <!-- 装飾的な境界線 -->
+  <rect x="40" y="600" width="432" height="50" fill="url(#stripes)" rx="10" opacity="0.3"/>
+  
+  <!-- バージョン情報 -->
+  <text x="256" y="720" text-anchor="middle" font-family="monospace" font-size="10" fill="#d1d5db">
+    MajiBattle v1.0 - AI Image Generation Module
+  </text>
+</svg>
+  `.trim();
+
+  return new Response(svgContent, {
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  });
+}
+
 // Cloudflare Workers Environment interface
 interface Env {
   // eslint-disable-next-line no-undef
@@ -909,6 +1068,11 @@ interface Env {
   // Workers Secrets（本番）または.dev.vars（ローカル開発）
   GEMINI_API_KEY: string;
   GEMINI_MODEL: string;
+  // AI画像生成関連の設定
+  STABLE_DIFFUSION_API_ENDPOINT?: string;
+  CF_CLIENT_ID?: string;
+  CF_SECRET?: string;
+  IMAGE_GENERATION_ENABLED?: string; // "true" | "false"
 }
 
 export default {
@@ -925,6 +1089,11 @@ export default {
           'Cache-Control': 'no-cache',
         },
       });
+    }
+
+    // 静的アセット配信（代替画像）
+    if (url.pathname === '/images/underconstruction.svg') {
+      return serveUnderConstructionImage();
     }
 
     // GameSession API endpoints
@@ -1193,7 +1362,7 @@ async function generateSpell(
       });
     }
 
-    // Initialize spell generation service
+    // Initialize spell + image generation service
     let geminiApiKey: string = '';
 
     if (env.GEMINI_API_KEY) {
@@ -1203,13 +1372,29 @@ async function generateSpell(
       console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
     }
 
-    const spellService = new UnifiedSpellGenerationService(geminiApiKey, env.GEMINI_MODEL);
+    // 画像生成設定を構築
+    const imageConfig = {
+      enabled: env.IMAGE_GENERATION_ENABLED === 'true',
+      apiEndpoint: env.STABLE_DIFFUSION_API_ENDPOINT || '',
+      cfClientId: env.CF_CLIENT_ID,
+      cfSecret: env.CF_SECRET,
+      fallbackOnError: true, // 画像生成失敗時はテキストのみで継続
+    };
 
-    // Generate spell
-    const rawSpellResult = await spellService.generateSpell(selectedKanji);
+    console.log('🎨 Image generation config:', {
+      enabled: imageConfig.enabled,
+      hasEndpoint: !!imageConfig.apiEndpoint,
+      hasCfAuth: !!(imageConfig.cfClientId && imageConfig.cfSecret),
+    });
 
-    // 結果を統一形式に変換
-    const spellResult = SpellResultAdapter.toUnifiedFormat(rawSpellResult);
+    const spellWithImageService = new SpellWithImageGenerationService(
+      geminiApiKey,
+      env.GEMINI_MODEL,
+      imageConfig
+    );
+
+    // Generate spell with image
+    const spellResult = await spellWithImageService.generateSpellWithImage(selectedKanji);
 
     // TODO: Store spell in session history (implement in next task)
 
