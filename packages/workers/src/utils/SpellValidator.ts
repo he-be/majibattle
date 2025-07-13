@@ -79,6 +79,33 @@ export class SpellValidator {
   }
 
   /**
+   * 文字数を検証し、140文字を超える場合は切り詰める
+   */
+  validateTextLength(text: string, maxLength: number = 140): string {
+    if (typeof text !== 'string') {
+      return '';
+    }
+    return text.length > maxLength ? text.substring(0, maxLength) + '…' : text;
+  }
+
+  /**
+   * 説明文（story）を検証
+   */
+  validateStory(story: string): string {
+    return this.validateTextLength(story, 140);
+  }
+
+  /**
+   * 由来・伝承（origin）を検証（民俗学スタイルのみ）
+   */
+  validateOrigin(origin?: string): string {
+    if (this.style === PROMPT_STYLES.FOLKLORE && origin) {
+      return this.validateTextLength(origin, 140);
+    }
+    return origin || '';
+  }
+
+  /**
    * 利用可能な属性一覧を取得
    */
   getValidElements(): readonly SpellElement[] {
