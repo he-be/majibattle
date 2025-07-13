@@ -38,8 +38,8 @@ describe('SpellResultAdapter', () => {
       const result = SpellResultAdapter.toUnifiedFormat(folkloreResult);
 
       expect(result.spell).toBe('雷移封茶');
-      expect(result.description).toContain('古来より雷を司る村で伝えられる呪い');
-      expect(result.description).toContain('【由来】ある村人が茶への執着から生まれた');
+      expect(result.description).toBe('古来より雷を司る村で伝えられる呪い');
+      expect(result.description).not.toContain('【由来】'); // 由来は別フィールドで表示するため含まない
       expect(result.element).toBe('禁忌');
       expect(result.rarity).toBe('Rare');
       expect(result.effects).toEqual(folkloreResult.effects);

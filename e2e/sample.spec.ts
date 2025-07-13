@@ -57,8 +57,11 @@ test.describe('MajiBattle Game E2E Tests', () => {
     await expect(page.locator('.spell-modal')).toBeVisible();
     await expect(page.locator('.spell-result')).toBeVisible();
     
-    // Wait for the auto-reset to happen (modal will auto-close and reset)
-    await page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/reset'));
+    // Manually close the modal by clicking the close button (auto-reset was removed in issue #27)
+    await Promise.all([
+      page.locator('button:has-text("閉じる")').click(),
+      page.waitForResponse(response => response.url().includes('/api/game/') && response.url().includes('/reset'))
+    ]);
     
     // Check that selection is reset
     await expect(page.locator('#selected-count')).toHaveText('0');

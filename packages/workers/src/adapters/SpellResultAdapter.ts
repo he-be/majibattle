@@ -36,17 +36,11 @@ export class SpellResultAdapter {
   }
 
   /**
-   * 民俗学スタイルの豊富な情報を組み合わせた詳細説明を作成
+   * 民俗学スタイルの説明文を取得（originは別フィールドで表示するため含めない）
    */
   private static createEnhancedDescription(result: FolkloreSpellResult): string {
-    let description = result.story;
-
-    // 由来情報があれば追加
-    if (result.origin) {
-      description += `\n\n【由来】${result.origin}`;
-    }
-
-    return description;
+    // 由来情報は別途originフィールドで表示するため、storyのみを返す
+    return result.story;
   }
 
   /**

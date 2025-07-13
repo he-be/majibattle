@@ -1,5 +1,7 @@
 import { SpellResult, KanjiData } from '@majibattle/shared';
 import { KanjiDataManager } from '../data/KanjiDataManager';
+import { SpellValidator } from '../utils/SpellValidator';
+import { PROMPT_STYLES } from '../config/SpellConstants';
 
 interface GeminiResponse {
   candidates: Array<{
@@ -16,12 +18,14 @@ export class SpellGenerationService {
   private apiKey: string;
   private model: string;
   private apiEndpoint: string;
+  private validator: SpellValidator;
 
   constructor(apiKey: string, model: string) {
     this.kanjiManager = new KanjiDataManager();
     this.apiKey = apiKey;
     this.model = model;
     this.apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    this.validator = new SpellValidator(PROMPT_STYLES.TRADITIONAL);
   }
 
   async generateSpell(selectedKanji: string[]): Promise<SpellResult> {
@@ -65,7 +69,7 @@ export class SpellGenerationService {
 # 思考プロセス (Thinking Process)
 
 1.  **漢字の概念化**: まず、与えられた4つの漢字（例：「魔」「創」「神」「盾」）を眺め、それぞれの漢字が持つ**概念**や**イメージ**を抽出します。（例：魔→人知を超えた力、邪悪な存在 / 創→何かを生み出すこと / 神→絶対的な存在、奇跡 / 盾→防御、守護）
-2.  **物語の創作**: 次に、それらの概念を**物語の構成要素**として扱い、ショートストーリーを自由に創作してください。**漢字そのものを無理に文章へ組み込む必要はありません。** 例えば「魔創神盾」なら、「神に抗うために魔力を用いて盾を創造した者の物語」や「神々が創造した盾に魔物が封じられている伝承」のように、漢字を物語のテーマとして扱います。
+2.  **物語の創作**: 次に、それらの概念を**物語の構成要素**として扱い、**140文字以内**のショートストーリーを自由に創作してください。**漢字そのものを無理に文章へ組み込む必要はありません。** 例えば「魔創神盾」なら、「神に抗うために魔力を用いて盾を創造した者の物語」や「神々が創造した盾に魔物が封じられている伝承」のように、漢字を物語のテーマとして扱います。
 3.  **効果の考案**: あなたが作った物語のテーマに基づき、**全く異なるタイプのナンセンスな効果を3つ**考案してください。毎回同じパターンにならないよう、以下の切り口を参考に発想を飛躍させてください。
     - **五感の変化**: 何かが変な味や匂いに感じられる、幻覚や幻聴が起きる
     - **物理法則の無視**: 特定の物が宙に浮く、影が本体と違う動きをする
@@ -118,7 +122,7 @@ ${kanjiInfo}
   "name": "${spellName}",
   "kana": "（呪文のフリガナをカタカナで）",
   "rarity": "（useless, common, rare, epic, legendaryのいずれか）",
-  "story": "（あなたが創作した物語風の解説文）",
+  "story": "（あなたが創作した物語風の解説文、140文字以内）",
   "attribute": "（火, 水, 風, 土, 光, 闇, 混沌, 無, 食, 音, 聖, 魔 のいずれか）",
   "power": （1から10の整数）,
   "effects": [
@@ -199,40 +203,15 @@ ${kanjiInfo}
       // Validate and normalize the response
       return {
         spell: parsed.name || '無名の呪文',
-        description: parsed.story || '不明な効果',
-        effects: Array.isArray(parsed.effects) ? parsed.effects.slice(0, 3) : ['効果不明'],
-        power: Math.min(10, Math.max(1, parseInt(parsed.power) || 5)),
-        element: this.validateElement(parsed.attribute),
-        rarity: this.validateRarity(parsed.rarity),
+        description: this.validator.validateStory(parsed.story || '不明な効果'),
+        effects: this.validator.validateEffects(parsed.effects),
+        power: this.validator.validatePower(parsed.power),
+        element: this.validator.validateElement(parsed.attribute),
+        rarity: this.validator.validateRarity(parsed.rarity),
       };
     } catch {
       throw new Error('Failed to parse Gemini response');
     }
-  }
-
-  private validateElement(element: string): string {
-    const validElements = [
-      '火',
-      '水',
-      '風',
-      '土',
-      '光',
-      '闇',
-      '混沌',
-      '無',
-      '食',
-      '音',
-      '聖',
-      '魔',
-    ];
-    return validElements.includes(element) ? element : '無';
-  }
-
-  private validateRarity(rarity: string): 'useless' | 'common' | 'rare' | 'epic' | 'legendary' {
-    const validRarities = ['useless', 'common', 'rare', 'epic', 'legendary'] as const;
-    return validRarities.includes(rarity as (typeof validRarities)[number])
-      ? (rarity as (typeof validRarities)[number])
-      : 'common';
   }
 
   private generateFallbackSpell(kanjiDetails: KanjiData[]): SpellResult {
@@ -279,7 +258,7 @@ ${kanjiInfo}
 
     return {
       spell: spellName,
-      description: stories[storyIndex],
+      description: this.validator.validateStory(stories[storyIndex]),
       effects,
       power,
       element: elements[elementIndex],

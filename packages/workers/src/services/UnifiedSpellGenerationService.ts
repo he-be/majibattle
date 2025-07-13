@@ -203,7 +203,7 @@ export class UnifiedSpellGenerationService {
       if (style === PROMPT_STYLES.TRADITIONAL) {
         return {
           spell: parsed.name || '無名の呪文',
-          description: parsed.story || '不明な効果',
+          description: this.validator.validateStory(parsed.story || '不明な効果'),
           effects: this.validator.validateEffects(parsed.effects),
           power: this.validator.validatePower(parsed.power),
           element: this.validator.validateElement(parsed.attribute),
@@ -213,8 +213,8 @@ export class UnifiedSpellGenerationService {
         return {
           name: parsed.name || '無名の呪い',
           kana: parsed.kana || 'ムメイノノロイ',
-          story: parsed.story || '不明な背景',
-          origin: parsed.origin || '由来不明',
+          story: this.validator.validateStory(parsed.story || '不明な背景'),
+          origin: this.validator.validateOrigin(parsed.origin || '由来不明'),
           effects: this.validator.validateEffects(parsed.effects),
           power: this.validator.validatePower(parsed.power),
           attribute: this.validator.validateElement(parsed.attribute),
@@ -264,9 +264,10 @@ export class UnifiedSpellGenerationService {
     };
 
     if (style === PROMPT_STYLES.TRADITIONAL) {
+      const fallbackDescription = `${kanjiDetails.map((k) => k.meaning).join('の精霊が')}と踊り狂う奇妙な呪文。`;
       return {
         spell: spellName,
-        description: `${kanjiDetails.map((k) => k.meaning).join('の精霊が')}と踊り狂う奇妙な呪文。`,
+        description: this.validator.validateStory(fallbackDescription),
         effects: [
           `術者の${kanjiDetails[0].meaning}が${kanjiDetails[1].meaning}の色に変わり、周囲の人を困惑させる`,
           `対象の${kanjiDetails[2].meaning}に関する記憶が${kanjiDetails[3].meaning}に置き換わる（1時間）`,
@@ -277,11 +278,13 @@ export class UnifiedSpellGenerationService {
         ...baseData,
       } as SpellResult;
     } else {
+      const fallbackStory = `古来より${kanjiDetails[0].meaning}を司る村で、${kanjiDetails[1].meaning}の力を借りて${kanjiDetails[2].meaning}を成就させるために生まれた呪い。`;
+      const fallbackOrigin = `ある村人が${kanjiDetails[3].meaning}への執着から、この呪いを過度に使用した結果、意図しない奇妙な現象を引き起こすようになったと伝えられている。`;
       return {
         name: spellName,
         kana: kanjiDetails.map((k) => this.convertToKatakana(k.reading)).join(''),
-        story: `古来より${kanjiDetails[0].meaning}を司る村で、${kanjiDetails[1].meaning}の力を借りて${kanjiDetails[2].meaning}を成就させるために生まれた呪い。`,
-        origin: `ある村人が${kanjiDetails[3].meaning}への執着から、この呪いを過度に使用した結果、意図しない奇妙な現象を引き起こすようになったと伝えられている。`,
+        story: this.validator.validateStory(fallbackStory),
+        origin: this.validator.validateOrigin(fallbackOrigin),
         effects: [
           `術者の周囲で${kanjiDetails[0].meaning}に関連する物が、一日一度、微妙に位置を変える`,
           `${kanjiDetails[1].meaning}という言葉を聞くたび、術者の手に${kanjiDetails[2].meaning}の感触が蘇る`,

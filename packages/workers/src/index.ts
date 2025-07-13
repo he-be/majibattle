@@ -829,17 +829,38 @@ function generateGameHTML(): string {
                                 \${spellResult.effects.map(effect => \`<li>\${effect}</li>\`).join('')}
                             </ul>
                         </div>
-                        <button class="close-button" onclick="this.closest('.spell-modal').remove()">閉じる</button>
+                        <button class="close-button" id="close-spell-modal">閉じる</button>
                     </div>
                 \`;
                 
                 document.body.appendChild(spellModal);
                 
-                // 3秒後に自動的にリセット
-                setTimeout(() => {
+                // 閉じるボタンのクリックイベント
+                const closeButton = document.getElementById('close-spell-modal');
+                closeButton.addEventListener('click', () => {
                     spellModal.remove();
                     this.reset();
-                }, 10000);
+                    document.removeEventListener('keydown', handleEscKey);
+                });
+                
+                // モーダルクリックでも閉じる（背景クリック）
+                spellModal.addEventListener('click', (e) => {
+                    if (e.target === spellModal) {
+                        spellModal.remove();
+                        this.reset();
+                        document.removeEventListener('keydown', handleEscKey);
+                    }
+                });
+                
+                // ESCキーで閉じる
+                const handleEscKey = (e) => {
+                    if (e.key === 'Escape') {
+                        spellModal.remove();
+                        this.reset();
+                        document.removeEventListener('keydown', handleEscKey);
+                    }
+                };
+                document.addEventListener('keydown', handleEscKey);
             }
             
             getRarityText(rarity) {
@@ -873,7 +894,7 @@ function generateGameHTML(): string {
         
         // ゲーム開始
         document.addEventListener('DOMContentLoaded', () => {
-            new MajiBattleGame();
+            window.majiBattleGame = new MajiBattleGame();
         });
     </script>
 </body>
