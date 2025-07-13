@@ -52,6 +52,11 @@ new_sqlite_classes = [ "GameSession" ]
 # Environment variables
 [vars]
 GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
+IMAGE_GENERATION_ENABLED = "false"  # Default disabled for security
 
 # For local development: create .dev.vars file with GEMINI_API_KEY=your-key
 # For staging/production: Workers Secrets are set via GitHub Actions using wrangler secret put
+# For image generation, add to .dev.vars:
+#   IMAGE_GENERATION_ENABLED=true
+#   STABLE_DIFFUSION_API_ENDPOINT=https://your-endpoint.com
+#   STABLE_DIFFUSION_AUTH_TOKEN=your-token
