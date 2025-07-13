@@ -47,7 +47,7 @@ class_name = "GameSession"
 tag = "v1"
 new_sqlite_classes = [ "GameSession" ]
 
-# Note: Staging and Production use GameSessionV2 to force new SQL-enabled instances
+# Note: Staging and Production use GameSessionV2/V3 to force new SQL-enabled instances
 
 # Environment variables
 [vars]
