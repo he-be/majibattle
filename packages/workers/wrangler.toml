@@ -54,3 +54,4 @@ new_sqlite_classes = [ "GameSession" ]
 GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
 
 # For local development: create .dev.vars file with GEMINI_API_KEY=your-key
+# For staging/production: Workers Secrets are set via GitHub Actions using wrangler secret put

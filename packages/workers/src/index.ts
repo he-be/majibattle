@@ -296,6 +296,20 @@ function generateGameHTML(): string {
                 padding: 10px 20px;
                 font-size: 0.9rem;
             }
+            
+            .spell-result {
+                padding: 20px;
+                max-height: 95vh;
+            }
+            
+            .spell-name {
+                font-size: 1.5em;
+            }
+            
+            .spell-effects li {
+                font-size: 0.9em;
+                padding: 8px;
+            }
         }
         
         /* Spell Modal Styles */
@@ -319,10 +333,12 @@ function generateGameHTML(): string {
             padding: 40px;
             max-width: 500px;
             width: 90%;
+            max-height: 90vh;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.5s ease;
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         
         .spell-result::before {
@@ -425,9 +441,14 @@ function generateGameHTML(): string {
             background: #f3f4f6;
             border-radius: 8px;
             border-left: 3px solid #667eea;
+            word-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.5;
         }
         
         .close-button {
+            position: sticky;
+            bottom: 0;
             margin-top: 20px;
             padding: 12px 30px;
             background: #667eea;
@@ -438,6 +459,7 @@ function generateGameHTML(): string {
             cursor: pointer;
             width: 100%;
             transition: all 0.3s ease;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         }
         
         .close-button:hover {
