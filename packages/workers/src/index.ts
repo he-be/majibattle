@@ -6,7 +6,8 @@ export { GameSession } from './durable-objects/GameSession';
 export { GameSessionV2 } from './durable-objects/GameSessionV2';
 export { GameSessionV3 } from './durable-objects/GameSessionV3';
 
-import { SpellGenerationService } from './services/SpellGenerationService';
+import { UnifiedSpellGenerationService } from './services/UnifiedSpellGenerationService';
+import { SpellResultAdapter } from './adapters/SpellResultAdapter';
 
 export const sampleData = ['Hello', 'World', 'AI', 'Driven', 'Development'];
 
@@ -295,6 +296,20 @@ function generateGameHTML(): string {
                 padding: 10px 20px;
                 font-size: 0.9rem;
             }
+            
+            .spell-result {
+                padding: 20px;
+                max-height: 95vh;
+            }
+            
+            .spell-name {
+                font-size: 1.5em;
+            }
+            
+            .spell-effects li {
+                font-size: 0.9em;
+                padding: 8px;
+            }
         }
         
         /* Spell Modal Styles */
@@ -318,10 +333,12 @@ function generateGameHTML(): string {
             padding: 40px;
             max-width: 500px;
             width: 90%;
+            max-height: 90vh;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.5s ease;
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         
         .spell-result::before {
@@ -424,9 +441,14 @@ function generateGameHTML(): string {
             background: #f3f4f6;
             border-radius: 8px;
             border-left: 3px solid #667eea;
+            word-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.5;
         }
         
         .close-button {
+            position: sticky;
+            bottom: 0;
             margin-top: 20px;
             padding: 12px 30px;
             background: #667eea;
@@ -437,6 +459,7 @@ function generateGameHTML(): string {
             cursor: pointer;
             width: 100%;
             transition: all 0.3s ease;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         }
         
         .close-button:hover {
@@ -779,14 +802,17 @@ function generateGameHTML(): string {
             }
             
             displaySpellResult(spellResult) {
-                // 呪文結果を表示
+                // 呪文結果を表示（拡張SpellResult対応）
                 const spellModal = document.createElement('div');
                 spellModal.className = 'spell-modal';
+                
                 spellModal.innerHTML = \`
                     <div class="spell-result \${spellResult.rarity}">
                         <h2 class="spell-name">\${spellResult.spell}</h2>
+                        \${spellResult.kana ? \`<div class="spell-kana" style="text-align: center; font-size: 0.9em; color: #666; margin-bottom: 10px;">\${spellResult.kana}</div>\` : ''}
                         <div class="spell-rarity">\${this.getRarityText(spellResult.rarity)}</div>
                         <p class="spell-description">\${spellResult.description}</p>
+                        \${spellResult.origin ? \`<div class="spell-origin" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em; color: #555;"><strong>由来:</strong> \${spellResult.origin}</div>\` : ''}
                         <div class="spell-details">
                             <div class="spell-stat">
                                 <span class="label">属性:</span>
@@ -818,11 +844,18 @@ function generateGameHTML(): string {
             
             getRarityText(rarity) {
                 const rarityTexts = {
+                    // 従来スタイル
                     useless: 'ゴミ',
                     common: 'コモン',
                     rare: 'レア',
                     epic: 'エピック',
-                    legendary: 'レジェンダリー'
+                    legendary: 'レジェンダリー',
+                    // 民俗学スタイル
+                    Common: 'コモン',
+                    Uncommon: 'アンコモン',
+                    Rare: 'レア',
+                    Epic: 'エピック',
+                    Legendary: 'レジェンダリー'
                 };
                 return rarityTexts[rarity] || rarity;
             }
@@ -852,6 +885,7 @@ function generateGameHTML(): string {
 interface Env {
   // eslint-disable-next-line no-undef
   GAME_SESSION: DurableObjectNamespace;
+  // Workers Secrets（本番）または.dev.vars（ローカル開発）
   GEMINI_API_KEY: string;
   GEMINI_MODEL: string;
 }
@@ -1139,10 +1173,22 @@ async function generateSpell(
     }
 
     // Initialize spell generation service
-    const spellService = new SpellGenerationService(env.GEMINI_API_KEY, env.GEMINI_MODEL);
+    let geminiApiKey: string = '';
+
+    if (env.GEMINI_API_KEY) {
+      console.log('Using GEMINI_API_KEY from environment');
+      geminiApiKey = env.GEMINI_API_KEY;
+    } else {
+      console.warn('⚠️ GEMINI_API_KEY not available, using fallback generation');
+    }
+
+    const spellService = new UnifiedSpellGenerationService(geminiApiKey, env.GEMINI_MODEL);
 
     // Generate spell
-    const spellResult = await spellService.generateSpell(selectedKanji);
+    const rawSpellResult = await spellService.generateSpell(selectedKanji);
+
+    // 結果を統一形式に変換
+    const spellResult = SpellResultAdapter.toUnifiedFormat(rawSpellResult);
 
     // TODO: Store spell in session history (implement in next task)
 
