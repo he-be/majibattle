@@ -329,15 +329,17 @@ function generateGameHTML(): string {
         .spell-result {
             background: white;
             border-radius: 20px;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
+            padding: 30px;
+            max-width: 1000px;
+            width: 95%;
+            max-height: 95vh;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.5s ease;
             position: relative;
             overflow-y: auto;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
         }
         
         .spell-result::before {
@@ -368,43 +370,148 @@ function generateGameHTML(): string {
         }
         
         .spell-name {
-            font-size: 2em;
+            font-size: 2.2em;
             margin-bottom: 10px;
-            color: #1f2937;
             text-align: center;
+            font-weight: bold;
         }
         
-        .spell-rarity {
-            text-align: center;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
+        .spell-name.useless { color: #6b7280; }
+        .spell-name.rare { color: #3b82f6; }
+        .spell-name.epic { color: #8b5cf6; }
+        .spell-name.legendary { color: #f59e0b; }
+        .spell-name.common { color: #1f2937; }
+        
+        .spell-name ruby {
+            font-size: 0.5em;
             color: #6b7280;
         }
         
-        .spell-result.useless .spell-rarity { color: #6b7280; }
-        .spell-result.rare .spell-rarity { color: #3b82f6; }
-        .spell-result.epic .spell-rarity { color: #8b5cf6; }
-        .spell-result.legendary .spell-rarity { color: #f59e0b; }
+        .spell-rarity {
+            display: none; /* レアリティテキストは非表示（色で表現） */
+        }
+        
+        /* メインコンテンツエリアのグリッドレイアウト */
+        .spell-content-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 20px;
+            /* モバイル: 縦並びレイアウト（デフォルト） */
+            grid-template-areas: 
+                "image"
+                "description"
+                "stats";
+            grid-template-columns: 1fr;
+        }
+        
+        .spell-image-area { grid-area: image; }
+        .spell-description-area { grid-area: description; }
+        .spell-stats-area { grid-area: stats; }
+        
+        /* タブレット: 768px以上で部分的に横並び */
+        @media (min-width: 768px) {
+            .spell-content-grid {
+                grid-template-areas: 
+                    "image description"
+                    "stats stats";
+                grid-template-columns: 300px 1fr;
+                align-items: start;
+            }
+        }
+        
+        /* デスクトップ: 1024px以上でIssue #31の要件に対応 */
+        @media (min-width: 1024px) {
+            .spell-content-grid {
+                grid-template-areas: 
+                    "image description"
+                    "stats stats";
+                grid-template-columns: 400px 1fr;
+            }
+        }
+        
+        /* 効果リストのレスポンシブ対応 */
+        .spell-effects ul {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            gap: 8px;
+            /* モバイル: 1列 */
+            grid-template-columns: 1fr;
+        }
+        
+        /* タブレット: 768px以上で2列 */
+        @media (min-width: 768px) {
+            .spell-effects ul {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* デスクトップ: 1024px以上で3列（Issue #31要件） */
+        @media (min-width: 1024px) {
+            .spell-effects ul {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        .spell-description-area {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
         
         .spell-description {
             font-size: 1.1em;
             line-height: 1.6;
             color: #4b5563;
-            margin-bottom: 20px;
-            text-align: center;
+        }
+        
+        .spell-origin {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.95em;
+            color: #555;
+            border-left: 4px solid #667eea;
+        }
+        
+        .spell-origin strong {
+            color: #333;
+            margin-right: 8px;
+        }
+        
+        /* デスクトップでの説明エリア調整 */
+        @media (min-width: 768px) {
+            .spell-description-area {
+                padding-left: 20px;
+            }
+            
+            .spell-description {
+                text-align: left;
+            }
         }
         
         .spell-image {
             width: 100%;
-            max-width: 400px;
             height: auto;
             border-radius: 15px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            margin: 20px auto;
             display: block;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        /* レスポンシブ画像サイズ */
+        @media (max-width: 767px) {
+            .spell-image {
+                max-width: 300px;
+                margin: 0 auto;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .spell-image {
+                max-width: 100%;
+                margin: 0;
+            }
         }
         
         .spell-image:hover {
@@ -489,10 +596,6 @@ function generateGameHTML(): string {
             color: #1f2937;
         }
         
-        .spell-effects ul {
-            list-style: none;
-            padding: 0;
-        }
         
         .spell-effects li {
             padding: 10px;
@@ -860,63 +963,70 @@ function generateGameHTML(): string {
                 }
             }
             
+            generateTitleWithRuby(spell, kana) {
+                // ふりがな付きタイトルを生成
+                if (!kana) {
+                    return spell; // カナがない場合は漢字のみ
+                }
+                
+                // 単純な実装: 全体にルビを振る
+                // より複雑な漢字・ひらがな混在の場合は、個別に解析が必要
+                return \`<ruby>\${spell}<rt>\${kana}</rt></ruby>\`;
+            }
+            
             displaySpellResult(spellResult) {
                 // 呪文結果を表示（拡張SpellResult対応 + 画像生成対応）
                 const spellModal = document.createElement('div');
                 spellModal.className = 'spell-modal';
                 
-                // 画像表示エリアのHTML生成
+                // 画像表示エリアのHTML生成（AI生成完了テキストを削除）
                 let imageSection = '';
-                if (spellResult.imageGenerationEnabled) {
-                    if (spellResult.generatedImage) {
-                        // 画像生成成功
-                        imageSection = \`
-                            <div class="image-generation-status success">
-                                ✅ AI画像生成完了 (生成時間: \${Math.round(spellResult.generatedImage.generationTime / 1000)}秒)
-                            </div>
-                            <img src="\${spellResult.generatedImage.imageUrl}" alt="Generated spell image" class="spell-image">
-                        \`;
-                    } else if (spellResult.imageGenerationError) {
-                        // 画像生成失敗
-                        imageSection = \`
-                            <div class="image-generation-status error">
-                                ❌ AI画像生成に失敗しました: \${spellResult.imageGenerationError}
-                            </div>
-                        \`;
-                    } else {
-                        // 画像生成中
-                        imageSection = \`
-                            <div class="image-generation-status generating">
-                                🎨 AI画像を生成中...
-                            </div>
-                        \`;
-                    }
+                if (spellResult.imageGenerationEnabled && spellResult.generatedImage) {
+                    imageSection = \`<img src="\${spellResult.generatedImage.imageUrl}" alt="Generated spell image" class="spell-image">\`;
+                } else if (spellResult.imageGenerationEnabled && spellResult.imageGenerationError) {
+                    // フォールバック画像を表示（エラーテキストは削除）
+                    imageSection = \`<img src="/images/underconstruction.svg" alt="Spell image unavailable" class="spell-image">\`;
                 }
+                
+                // ふりがな付きタイトルの生成
+                const titleWithRuby = this.generateTitleWithRuby(spellResult.spell, spellResult.kana);
                 
                 spellModal.innerHTML = \`
                     <div class="spell-result \${spellResult.rarity}">
-                        <h2 class="spell-name">\${spellResult.spell}</h2>
-                        \${spellResult.kana ? \`<div class="spell-kana" style="text-align: center; font-size: 0.9em; color: #666; margin-bottom: 10px;">\${spellResult.kana}</div>\` : ''}
+                        <h2 class="spell-name \${spellResult.rarity}">\${titleWithRuby}</h2>
                         <div class="spell-rarity">\${this.getRarityText(spellResult.rarity)}</div>
-                        \${imageSection}
-                        <p class="spell-description">\${spellResult.description}</p>
-                        \${spellResult.origin ? \`<div class="spell-origin" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em; color: #555;"><strong>由来:</strong> \${spellResult.origin}</div>\` : ''}
-                        <div class="spell-details">
-                            <div class="spell-stat">
-                                <span class="label">属性:</span>
-                                <span class="value">\${spellResult.element}</span>
+                        
+                        <div class="spell-content-grid">
+                            <div class="spell-image-area">
+                                \${imageSection}
                             </div>
-                            <div class="spell-stat">
-                                <span class="label">威力:</span>
-                                <span class="value">\${spellResult.power}/10</span>
+                            
+                            <div class="spell-description-area">
+                                <div class="spell-description">\${spellResult.description}</div>
+                                \${spellResult.origin ? \`<div class="spell-origin"><strong>由来:</strong> \${spellResult.origin}</div>\` : ''}
+                            </div>
+                            
+                            <div class="spell-stats-area">
+                                <div class="spell-details">
+                                    <div class="spell-stat">
+                                        <span class="label">属性:</span>
+                                        <span class="value">\${spellResult.element}</span>
+                                    </div>
+                                    <div class="spell-stat">
+                                        <span class="label">威力:</span>
+                                        <span class="value">\${spellResult.power}/10</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        
                         <div class="spell-effects">
                             <h3>効果:</h3>
                             <ul>
                                 \${spellResult.effects.map(effect => \`<li>\${effect}</li>\`).join('')}
                             </ul>
                         </div>
+                        
                         <button class="close-button" id="close-spell-modal">閉じる</button>
                     </div>
                 \`;
@@ -1164,7 +1274,7 @@ async function handleGameAPI(request: Request, env: Env, url: URL): Promise<Resp
 
       // POST /api/game/{sessionId}/spell - Generate spell
       if (method === 'POST' && pathSegments[3] === 'spell') {
-        return await generateSpell(request, env, sessionId, corsHeaders);
+        return await generateSpell(env, sessionId, corsHeaders);
       }
     }
 
@@ -1318,7 +1428,6 @@ async function resetGameSession(
  * Generate spell using AI
  */
 async function generateSpell(
-  request: Request,
   env: Env,
   sessionId: string,
   corsHeaders: Record<string, string>

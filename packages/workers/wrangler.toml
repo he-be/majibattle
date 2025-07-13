@@ -10,7 +10,7 @@ local_protocol = "http"
 # Staging environment for PR previews
 [env.staging]
 name = "majibattle-staging"
-vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17", IMAGE_GENERATION_ENABLED = "true" }
+vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17", IMAGE_GENERATION_ENABLED = "true", STABLE_DIFFUSION_API_ENDPOINT = "https://sdxl.do-not-connect.com" }
 
 [[env.staging.durable_objects.bindings]]
 name = "GAME_SESSION"
@@ -23,7 +23,7 @@ new_sqlite_classes = [ "GameSessionV2" ]
 # Production environment
 [env.production]
 name = "majibattle"
-vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17", IMAGE_GENERATION_ENABLED = "true" }
+vars = { GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17", IMAGE_GENERATION_ENABLED = "true", STABLE_DIFFUSION_API_ENDPOINT = "https://sdxl.do-not-connect.com" }
 
 [[env.production.durable_objects.bindings]]
 name = "GAME_SESSION"
@@ -54,9 +54,11 @@ new_sqlite_classes = [ "GameSession" ]
 GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
 IMAGE_GENERATION_ENABLED = "false"  # Default disabled for security
 
-# For local development: create .dev.vars file with GEMINI_API_KEY=your-key
-# For staging/production: Workers Secrets are set via GitHub Actions using wrangler secret put
-# For image generation, add to .dev.vars:
+# For local development: create .dev.vars file with:
+#   GEMINI_API_KEY=your-key
 #   IMAGE_GENERATION_ENABLED=true
-#   STABLE_DIFFUSION_API_ENDPOINT=https://your-endpoint.com
-#   STABLE_DIFFUSION_AUTH_TOKEN=your-token
+#   CF_CLIENT_ID=your-client-id
+#   CF_SECRET=your-secret
+# For staging/production: 
+#   - Environment variables are set in wrangler.toml
+#   - Secrets (GEMINI_API_KEY, CF_CLIENT_ID, CF_SECRET) are set via GitHub Actions
